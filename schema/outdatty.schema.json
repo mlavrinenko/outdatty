@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Manifest",
+  "description": "A declared dependency graph between artifacts.",
+  "type": "object",
+  "properties": {
+    "groups": {
+      "description": "Dependency groups. Each group couples one or more source artifacts to the dependents that must be re-confirmed when a source changes.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Group"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "Group": {
+      "description": "A single dependency group.",
+      "type": "object",
+      "required": [
+        "dependents",
+        "source"
+      ],
+      "properties": {
+        "bidirectional": {
+          "description": "When true, a change to any dependent also marks the group out of date, modelling a bidirectional coupling.",
+          "default": false,
+          "type": "boolean"
+        },
+        "dependents": {
+          "description": "Dependent artifacts that must be re-confirmed when a source changes.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "description": "Optional stable identifier used in reports and for `--group` targeting.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "description": "Source artifacts. A change to any source marks the group out of date. Entries may be literal paths or glob patterns such as `src/**/*.rs`.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

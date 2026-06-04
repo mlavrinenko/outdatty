@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=../schema/outdatty.schema.json
+
+# Example manifest. Each group couples source artifacts to the dependents that
+# must be re-confirmed whenever a source changes. Confirm with `outdatty update`,
+# gate in CI with `outdatty check`.
+groups:
+  # Directed coupling: editing the code flags the docs and tests as stale until
+  # a human re-confirms them. Editing only the docs is allowed.
+  - name: feature
+    source:
+      - src/feature.rs
+    dependents:
+      - docs/feature.mdx
+      - tests/feature.rs
+
+  # Globs are expanded relative to the manifest; adding or removing a matching
+  # file counts as a change.
+  - name: public-api
+    source:
+      - src/api/**/*.rs
+    dependents:
+      - docs/api.md
+
+  # Bidirectional coupling: a change to either side flags the group.
+  - name: schema-and-fixture
+    source:
+      - schema/event.json
+    dependents:
+      - fixtures/event.sample.json
+    bidirectional: true

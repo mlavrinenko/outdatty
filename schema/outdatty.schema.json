@@ -4,6 +4,11 @@
   "description": "A declared dependency graph between artifacts.",
   "type": "object",
   "properties": {
+    "gitignore": {
+      "description": "When true (the default), glob expansion skips paths ignored by the repository's root `.gitignore`, so build artifacts and other generated files never enter a group. Set to false to match every file on disk.",
+      "default": true,
+      "type": "boolean"
+    },
     "groups": {
       "description": "Dependency groups. Each group couples one or more source artifacts to the dependents that must be re-confirmed when a source changes.",
       "default": [],

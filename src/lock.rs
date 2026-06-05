@@ -60,11 +60,32 @@ impl Lockfile {
             return Err(Error::LockNotFound(path.to_path_buf()));
         }
         let text = fs::read_to_string(path)?;
-        let lock = serde_yaml_ng::from_str(&text).map_err(|source| Error::LockParse {
+        let lock: Self = serde_yaml_ng::from_str(&text).map_err(|source| Error::LockParse {
             path: path.to_path_buf(),
             source: Box::new(source),
         })?;
+        lock.check_compatible(path)?;
         Ok(lock)
+    }
+
+    /// Rejects lockfiles this build cannot interpret: a newer format version or
+    /// a hash algorithm it does not compute.
+    fn check_compatible(&self, path: &Path) -> Result<()> {
+        if self.version > VERSION {
+            return Err(Error::LockVersion {
+                path: path.to_path_buf(),
+                found: self.version,
+                supported: VERSION,
+            });
+        }
+        if self.algorithm != hashing::ALGORITHM {
+            return Err(Error::LockAlgorithm {
+                path: path.to_path_buf(),
+                found: self.algorithm.clone(),
+                expected: hashing::ALGORITHM.to_owned(),
+            });
+        }
+        Ok(())
     }
 
     /// Loads a lockfile from `path`, returning an empty lockfile if absent.
@@ -92,7 +113,18 @@ impl Lockfile {
         if !text.ends_with('\n') {
             text.push('\n');
         }
-        fs::write(path, text)?;
+        // Write to a sibling temp file then rename, so an interrupted write can
+        // never leave a truncated lockfile in place.
+        let file_name = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or(DEFAULT_NAME);
+        let tmp = path.with_file_name(format!("{file_name}.tmp.{}", std::process::id()));
+        fs::write(&tmp, text)?;
+        if let Err(err) = fs::rename(&tmp, path) {
+            let _ = fs::remove_file(&tmp);
+            return Err(err.into());
+        }
         Ok(())
     }
 }
@@ -140,5 +172,17 @@ mod tests {
     fn missing_file_is_an_error_for_load() {
         let dir = tempfile::tempdir().expect("tempdir");
         assert!(Lockfile::load(&dir.path().join("nope.lock")).is_err());
+    }
+
+    #[test]
+    fn rejects_newer_version_and_foreign_algorithm() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("outdatty.lock");
+
+        std::fs::write(&path, "version: 999\nalgorithm: blake3\ngroups: {}\n").expect("write");
+        assert!(Lockfile::load(&path).is_err(), "future version rejected");
+
+        std::fs::write(&path, "version: 1\nalgorithm: md5\ngroups: {}\n").expect("write");
+        assert!(Lockfile::load(&path).is_err(), "foreign algorithm rejected");
     }
 }

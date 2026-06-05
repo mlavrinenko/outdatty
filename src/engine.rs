@@ -30,7 +30,7 @@ impl Filter {
 
 /// Synchronisation status of a single group.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "snake_case")]
 pub enum Status {
     /// Every artifact matches the confirmed snapshot.
     Ok,
@@ -89,19 +89,23 @@ pub fn ids(manifest: &Manifest) -> Vec<String> {
         .collect()
 }
 
-fn hash_patterns(patterns: &[String], base: &Path) -> Result<BTreeMap<String, String>> {
+fn hash_patterns(
+    patterns: &[String],
+    base: &Path,
+    gitignore: bool,
+) -> Result<BTreeMap<String, String>> {
     let mut map = BTreeMap::new();
-    for path in resolve::expand(patterns, base)? {
+    for path in resolve::expand(patterns, base, gitignore)? {
         let hash = hashing::hash_file(&base.join(&path))?;
         map.insert(path, hash);
     }
     Ok(map)
 }
 
-fn snapshot_group(group: &Group, base: &Path) -> Result<GroupSnapshot> {
+fn snapshot_group(group: &Group, base: &Path, gitignore: bool) -> Result<GroupSnapshot> {
     Ok(GroupSnapshot {
-        source: hash_patterns(&group.source, base)?,
-        dependents: hash_patterns(&group.dependents, base)?,
+        source: hash_patterns(&group.source, base, gitignore)?,
+        dependents: hash_patterns(&group.dependents, base, gitignore)?,
     })
 }
 
@@ -139,8 +143,9 @@ fn evaluate_group(
     id: String,
     base: &Path,
     locked: Option<&GroupSnapshot>,
+    gitignore: bool,
 ) -> Result<GroupReport> {
-    let current = snapshot_group(group, base)?;
+    let current = snapshot_group(group, base, gitignore)?;
     let Some(locked) = locked else {
         return Ok(GroupReport {
             id,
@@ -182,14 +187,14 @@ pub fn evaluate(
             continue;
         }
         let locked = lock.groups.get(&id);
-        groups.push(evaluate_group(group, id, base, locked)?);
+        groups.push(evaluate_group(group, id, base, locked, manifest.gitignore)?);
     }
     Ok(Report { groups })
 }
 
 /// Action taken on a group during an update.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "snake_case")]
 pub enum UpdateAction {
     /// A new snapshot was recorded.
     Added,
@@ -197,6 +202,8 @@ pub enum UpdateAction {
     Updated,
     /// The snapshot was already current.
     Unchanged,
+    /// A lockfile entry with no matching manifest group was pruned.
+    Removed,
 }
 
 /// Result of updating one group.
@@ -249,12 +256,20 @@ pub fn build(
         if !filter.selects(&id) {
             continue;
         }
-        let snapshot = snapshot_group(group, base)?;
+        let snapshot = snapshot_group(group, base, manifest.gitignore)?;
         let action = action_for(lock.groups.get(&id), &snapshot);
         next.groups.insert(id.clone(), snapshot);
         entries.push(UpdateEntry { id, action });
     }
     if matches!(filter, Filter::All) {
+        for id in next.groups.keys() {
+            if !keep.contains(id) {
+                entries.push(UpdateEntry {
+                    id: id.clone(),
+                    action: UpdateAction::Removed,
+                });
+            }
+        }
         next.groups.retain(|id, _| keep.contains(id));
     }
     Ok((next, UpdateReport { entries }))
@@ -276,6 +291,7 @@ mod tests {
     fn manifest_with(group: Group) -> Manifest {
         Manifest {
             groups: vec![group],
+            ..Manifest::default()
         }
     }
 
@@ -313,6 +329,7 @@ mod tests {
     fn ids_uses_names_then_positions() {
         let manifest = Manifest {
             groups: vec![pair_group(), Group::default()],
+            ..Manifest::default()
         };
         assert_eq!(
             ids(&manifest),
@@ -413,10 +430,17 @@ mod tests {
             "filtered build keeps orphans"
         );
 
-        let (pruned, _) = build(&manifest, &lock, dir.path(), &Filter::All).expect("build");
+        let (pruned, report) = build(&manifest, &lock, dir.path(), &Filter::All).expect("build");
         assert!(
             !pruned.groups.contains_key("orphan"),
             "full build prunes orphans"
+        );
+        assert!(
+            report
+                .entries
+                .iter()
+                .any(|entry| entry.id == "orphan" && entry.action == UpdateAction::Removed),
+            "pruned orphan is reported as removed"
         );
     }
 }

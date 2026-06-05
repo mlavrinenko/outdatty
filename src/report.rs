@@ -1,9 +1,13 @@
 //! Human- and machine-readable rendering of engine reports.
 
 use clap::ValueEnum;
+use serde::Serialize;
 
 use crate::engine::{GroupReport, Report, Status, UpdateAction, UpdateReport};
 use crate::error::Result;
+
+/// Schema version of the JSON report payload. Bump on incompatible changes.
+const JSON_VERSION: u32 = 1;
 
 /// Output format for command results.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
@@ -17,6 +21,34 @@ pub enum Format {
     Quiet,
 }
 
+/// Machine-readable view of an evaluation report, carrying an explicit failure
+/// signal and counts so consumers need not parse the process exit code.
+#[derive(Serialize)]
+struct ReportView<'a> {
+    version: u32,
+    failed: bool,
+    total: usize,
+    out_of_date: usize,
+    groups: &'a [GroupReport],
+}
+
+impl<'a> ReportView<'a> {
+    fn new(report: &'a Report) -> Self {
+        let out_of_date = report
+            .groups
+            .iter()
+            .filter(|group| group.status.is_failure())
+            .count();
+        Self {
+            version: JSON_VERSION,
+            failed: out_of_date > 0,
+            total: report.groups.len(),
+            out_of_date,
+            groups: &report.groups,
+        }
+    }
+}
+
 /// Renders an evaluation [`Report`] in the requested `format`.
 ///
 /// # Errors
@@ -25,9 +57,16 @@ pub enum Format {
 pub fn render_report(report: &Report, format: Format) -> Result<String> {
     match format {
         Format::Quiet => Ok(String::new()),
-        Format::Json => Ok(serde_json::to_string_pretty(report)?),
+        Format::Json => Ok(to_json(&ReportView::new(report))?),
         Format::Plain => Ok(render_report_plain(report)),
     }
+}
+
+/// Serializes `value` as pretty JSON with a trailing newline.
+fn to_json<T: Serialize>(value: &T) -> Result<String> {
+    let mut text = serde_json::to_string_pretty(value)?;
+    text.push('\n');
+    Ok(text)
 }
 
 fn render_report_plain(report: &Report) -> String {
@@ -81,7 +120,7 @@ fn status_label(status: Status) -> &'static str {
 pub fn render_update(report: &UpdateReport, format: Format) -> Result<String> {
     match format {
         Format::Quiet => Ok(String::new()),
-        Format::Json => Ok(serde_json::to_string_pretty(report)?),
+        Format::Json => to_json(report),
         Format::Plain => Ok(render_update_plain(report)),
     }
 }
@@ -102,6 +141,7 @@ fn action_label(action: UpdateAction) -> &'static str {
         UpdateAction::Added => "added  ",
         UpdateAction::Updated => "updated",
         UpdateAction::Unchanged => "current",
+        UpdateAction::Removed => "removed",
     }
 }
 
@@ -148,6 +188,9 @@ mod tests {
         let text = render_report(&sample_report(), Format::Json).expect("render");
         assert!(text.contains("\"status\": \"stale\""));
         assert!(text.contains("\"changed_sources\""));
+        assert!(text.contains("\"failed\": true"), "carries failure signal");
+        assert!(text.contains("\"out_of_date\": 1"));
+        assert!(text.ends_with("\n"), "json ends with newline");
     }
 
     #[test]

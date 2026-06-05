@@ -29,9 +29,43 @@ pub enum Error {
         source: Box<serde_yaml_ng::Error>,
     },
 
+    /// Two groups share the same identifier.
+    #[error("duplicate group name: {0} (group names must be unique)")]
+    DuplicateGroup(String),
+
+    /// A group declares no source artifacts.
+    #[error("group {0} has an empty `source`; a group must declare at least one source")]
+    EmptyGroupSource(String),
+
     /// The lockfile could not be located.
     #[error("lockfile not found: {0} (run `outdatty update` to create it)")]
     LockNotFound(PathBuf),
+
+    /// The lockfile was written by an incompatible (newer) version.
+    #[error(
+        "lockfile {path} has unsupported version {found} (this build supports up to {supported}); upgrade outdatty"
+    )]
+    LockVersion {
+        /// Path of the offending lockfile.
+        path: PathBuf,
+        /// Version recorded in the lockfile.
+        found: u32,
+        /// Highest version this build understands.
+        supported: u32,
+    },
+
+    /// The lockfile records a hash algorithm this build cannot reproduce.
+    #[error(
+        "lockfile {path} uses hash algorithm `{found}`, but this build computes `{expected}`; run `outdatty update`"
+    )]
+    LockAlgorithm {
+        /// Path of the offending lockfile.
+        path: PathBuf,
+        /// Algorithm recorded in the lockfile.
+        found: String,
+        /// Algorithm this build computes.
+        expected: String,
+    },
 
     /// The lockfile failed to parse.
     #[error("failed to parse lockfile {path}: {source}")]
@@ -45,10 +79,6 @@ pub enum Error {
     /// The lockfile could not be serialized.
     #[error("failed to serialize lockfile: {0}")]
     LockSerialize(Box<serde_yaml_ng::Error>),
-
-    /// A directly referenced file is missing from disk.
-    #[error("referenced file is missing: {0}")]
-    MissingFile(String),
 
     /// A glob pattern was invalid.
     #[error("invalid pattern `{pattern}`: {source}")]
@@ -79,7 +109,9 @@ mod tests {
     fn messages_are_actionable() {
         let unknown = Error::UnknownGroup("ghost".to_owned());
         assert_eq!(unknown.to_string(), "no such group: ghost");
-        let missing = Error::MissingFile("code.rs".to_owned());
-        assert!(missing.to_string().contains("referenced file is missing"));
+        let dup = Error::DuplicateGroup("pair".to_owned());
+        assert!(dup.to_string().contains("duplicate group name"));
+        let empty = Error::EmptyGroupSource("pair".to_owned());
+        assert!(empty.to_string().contains("empty `source`"));
     }
 }

@@ -11,14 +11,34 @@ use crate::error::{Error, Result};
 /// Default manifest file names, tried in order during discovery.
 const DEFAULT_NAMES: [&str; 2] = ["outdatty.yaml", "outdatty.yml"];
 
+/// Default for [`Manifest::gitignore`].
+const fn default_gitignore() -> bool {
+    true
+}
+
 /// A declared dependency graph between artifacts.
-#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Manifest {
     /// Dependency groups. Each group couples one or more source artifacts to
     /// the dependents that must be re-confirmed when a source changes.
     #[serde(default)]
     pub groups: Vec<Group>,
+
+    /// When true (the default), glob expansion skips paths ignored by the
+    /// repository's root `.gitignore`, so build artifacts and other generated
+    /// files never enter a group. Set to false to match every file on disk.
+    #[serde(default = "default_gitignore")]
+    pub gitignore: bool,
+}
+
+impl Default for Manifest {
+    fn default() -> Self {
+        Self {
+            groups: Vec::new(),
+            gitignore: default_gitignore(),
+        }
+    }
 }
 
 /// A single dependency group.
@@ -66,11 +86,36 @@ impl Manifest {
             return Err(Error::ManifestNotFound(path.to_path_buf()));
         }
         let text = fs::read_to_string(path)?;
-        let manifest = serde_yaml_ng::from_str(&text).map_err(|source| Error::ManifestParse {
-            path: path.to_path_buf(),
-            source: Box::new(source),
-        })?;
+        let manifest: Self =
+            serde_yaml_ng::from_str(&text).map_err(|source| Error::ManifestParse {
+                path: path.to_path_buf(),
+                source: Box::new(source),
+            })?;
+        manifest.validate()?;
         Ok(manifest)
+    }
+
+    /// Checks structural invariants the schema cannot express: group names must
+    /// be unique and every group must declare at least one source.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::DuplicateGroup`] or [`Error::EmptyGroupSource`].
+    pub fn validate(&self) -> Result<()> {
+        let mut seen: Vec<&str> = Vec::new();
+        for (index, group) in self.groups.iter().enumerate() {
+            let id = group.id(index);
+            if group.source.is_empty() {
+                return Err(Error::EmptyGroupSource(id));
+            }
+            if let Some(name) = &group.name {
+                if seen.contains(&name.as_str()) {
+                    return Err(Error::DuplicateGroup(name.clone()));
+                }
+                seen.push(name);
+            }
+        }
+        Ok(())
     }
 
     /// Finds the default manifest in `dir`, returning the first existing name.
@@ -121,6 +166,57 @@ mod tests {
         let group = manifest.groups.first().expect("group");
         assert_eq!(group.source, vec!["a.rs".to_owned()]);
         assert!(!group.bidirectional);
+    }
+
+    #[test]
+    fn gitignore_defaults_to_true() {
+        let text = "groups:\n  - source: [a.rs]\n    dependents: [a.md]\n";
+        let manifest: Manifest = serde_yaml_ng::from_str(text).expect("parse");
+        assert!(manifest.gitignore, "gitignore defaults on");
+        assert!(Manifest::default().gitignore);
+    }
+
+    #[test]
+    fn validate_rejects_duplicate_names_and_empty_source() {
+        let dup = Manifest {
+            groups: vec![
+                Group {
+                    name: Some("g".to_owned()),
+                    source: vec!["a".to_owned()],
+                    ..Group::default()
+                },
+                Group {
+                    name: Some("g".to_owned()),
+                    source: vec!["b".to_owned()],
+                    ..Group::default()
+                },
+            ],
+            ..Manifest::default()
+        };
+        assert!(dup.validate().is_err(), "duplicate names rejected");
+
+        let empty = Manifest {
+            groups: vec![Group {
+                name: Some("g".to_owned()),
+                source: Vec::new(),
+                dependents: vec!["b".to_owned()],
+                ..Group::default()
+            }],
+            ..Manifest::default()
+        };
+        assert!(empty.validate().is_err(), "empty source rejected");
+    }
+
+    #[test]
+    fn load_rejects_duplicate_names() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("outdatty.yaml");
+        std::fs::write(
+            &path,
+            "groups:\n  - name: g\n    source: [a]\n    dependents: [b]\n  - name: g\n    source: [c]\n    dependents: [d]\n",
+        )
+        .expect("write");
+        assert!(Manifest::load(&path).is_err(), "load validates");
     }
 
     #[test]

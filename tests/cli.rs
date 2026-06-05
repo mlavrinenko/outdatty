@@ -115,16 +115,38 @@ fn json_format_emits_status() {
 }
 
 #[test]
-fn missing_literal_is_operational_error() {
+fn deleted_literal_source_is_drift_not_crash() {
     let dir = tempfile::tempdir().expect("tempdir");
     manifest(dir.path());
+    write(dir.path(), "code.rs", "a");
+    write(dir.path(), "doc.md", "b");
+    bin().current_dir(&dir).arg("update").assert().success();
+
+    std::fs::remove_file(dir.path().join("code.rs")).expect("remove source");
+    bin()
+        .current_dir(&dir)
+        .arg("check")
+        .assert()
+        .code(1)
+        .stdout(contains("stale").and(contains("source changed")));
+}
+
+#[test]
+fn duplicate_group_name_is_operational_error() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    write(
+        dir.path(),
+        "outdatty.yaml",
+        "groups:\n  - name: pair\n    source: [code.rs]\n    dependents: [doc.md]\n  - name: pair\n    source: [code.rs]\n    dependents: [doc.md]\n",
+    );
+    write(dir.path(), "code.rs", "a");
     write(dir.path(), "doc.md", "b");
     bin()
         .current_dir(&dir)
         .arg("check")
         .assert()
         .code(2)
-        .stderr(contains("referenced file is missing"));
+        .stderr(contains("duplicate group name"));
 }
 
 #[test]

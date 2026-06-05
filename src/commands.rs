@@ -225,6 +225,7 @@ mod tests {
                 name: Some("known".to_owned()),
                 ..Group::default()
             }],
+            ..Manifest::default()
         };
         assert!(matches!(
             make_filter(&manifest, &[]).expect("all"),

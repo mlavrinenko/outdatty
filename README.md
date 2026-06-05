@@ -53,12 +53,14 @@ outdatty schema               # print the manifest JSON schema
 Global flags: `--manifest <path>`, `--lock <path>`, `--format plain|json|quiet`.
 
 Exit codes: `0` in sync, `1` drift (check only), `2` operational error
-(missing file, unknown group, unparseable manifest).
+(unknown group, duplicate group name, unparseable manifest, incompatible
+lockfile).
 
 ### Manifest
 
 ```yaml
 # yaml-language-server: $schema=https://raw.githubusercontent.com/mlavrinenko/outdatty/main/schema/outdatty.schema.json
+# gitignore: false                    # match every file; default skips .gitignored paths
 groups:
   - name: feature
     source: [src/feature.rs]          # literal paths or globs like src/**/*.rs
@@ -66,9 +68,11 @@ groups:
     # bidirectional: true             # also flag the group when a dependent changes
 ```
 
-See [examples/outdatty.yaml](examples/outdatty.yaml). A literal path that is
-missing on disk is a hard error; a glob that no longer matches a previously
-locked file counts as a change to confirm.
+See [examples/outdatty.yaml](examples/outdatty.yaml). A path that disappears —
+a deleted literal, or a glob that no longer matches a previously locked file —
+counts as a change to confirm. Glob expansion skips files ignored by the
+repository's root `.gitignore` (so build output never enters a group); set
+`gitignore: false` at the top of the manifest to match every file.
 
 ## Development
 

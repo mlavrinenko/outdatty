@@ -5,7 +5,7 @@
 All clippy lints are set to `deny` level — the project will not compile with violations.
 
 Key restrictions:
-- No `unwrap()` — use `?` operator or `anyhow`/`thiserror` error handling
+- No `unwrap()` — use the `?` operator or `thiserror` error handling
 - No `todo!()`, `unimplemented!()`, `unreachable!()` — handle all cases
 - No `unsafe` code
 - No wildcard imports (`use foo::*`)
@@ -14,9 +14,11 @@ Key restrictions:
 
 ## Error Handling
 
-- Use `anyhow::Result` for application-level code (binaries, CLI)
-- Use `thiserror::Error` for library error types that callers will match on
-- Propagate errors with `?` — never `unwrap()` or `expect()`
+- Use `thiserror::Error` for the library error type (`src/error.rs`); add a
+  variant rather than stringly-typed errors
+- The binary maps any error to exit code 2; drift versus success is carried by
+  the returned `ExitCode`
+- Propagate errors with `?` — never `unwrap()` or `expect()` in non-test code
 
 ## Project Structure
 

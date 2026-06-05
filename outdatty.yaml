@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=./schema/outdatty.schema.json
+
+# outdatty gating its own repository. When a source below changes, `check`
+# fails until the listed dependents are re-confirmed with `outdatty update`.
+groups:
+  # The manifest types are the source of truth for the JSON schema and the
+  # example manifest; both must track changes to them.
+  - name: schema
+    source:
+      - src/manifest.rs
+    dependents:
+      - schema/outdatty.schema.json
+      - examples/outdatty.yaml
+
+  # The CLI surface (subcommands, flags, exit codes) is documented by hand;
+  # editing it flags the docs as needing review.
+  - name: cli-docs
+    source:
+      - src/cli.rs
+      - src/commands.rs
+    dependents:
+      - README.md
+      - www/index.html
+
+  # A package change should be reflected in the changelog.
+  - name: release-notes
+    source:
+      - Cargo.toml
+    dependents:
+      - CHANGELOG.md

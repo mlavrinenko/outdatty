@@ -25,9 +25,10 @@ pub struct Manifest {
     #[serde(default)]
     pub groups: Vec<Group>,
 
-    /// When true (the default), glob expansion skips paths ignored by the
-    /// repository's root `.gitignore`, so build artifacts and other generated
-    /// files never enter a group. Set to false to match every file on disk.
+    /// When true (the default), glob expansion skips paths ignored by git —
+    /// the `.gitignore` files (root and nested), the global excludes, and
+    /// `.git/info/exclude` — so build artifacts and other generated files never
+    /// enter a group. Set to false to match every file on disk.
     #[serde(default = "default_gitignore")]
     pub gitignore: bool,
 }

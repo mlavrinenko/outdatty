@@ -2,7 +2,8 @@
 
 use std::path::Path;
 
-use ignore::gitignore::{Gitignore, GitignoreBuilder};
+use globset::{GlobBuilder, GlobSet, GlobSetBuilder};
+use ignore::{DirEntry, Walk, WalkBuilder};
 
 use crate::error::{Error, Result};
 
@@ -17,34 +18,31 @@ pub fn is_glob(pattern: &str) -> bool {
 ///
 /// Glob patterns may match zero files. A literal path that is absent on disk is
 /// skipped with a warning (so a deleted source surfaces as drift rather than a
-/// hard error). When `gitignore` is true, glob matches ignored by the root
-/// `.gitignore` are dropped; explicitly listed literals are always kept. Paths
-/// are normalized to use forward slashes.
+/// hard error). When `gitignore` is true, glob matches ignored by git — the
+/// repository's `.gitignore` files (root and nested), the global excludes, and
+/// `.git/info/exclude` — are dropped; explicitly listed literals are always
+/// kept. The `.git` directory itself is never traversed. Symlinks are not
+/// followed during glob expansion. Paths are normalized to use forward slashes.
 ///
 /// # Errors
 ///
 /// Returns [`Error::Pattern`] if a glob pattern is invalid.
 pub fn expand(patterns: &[String], base: &Path, gitignore: bool) -> Result<Vec<String>> {
-    let ignorer = gitignore.then(|| build_gitignore(base));
     let mut out: Vec<String> = Vec::new();
+    let mut globs: Vec<&str> = Vec::new();
     for pattern in patterns {
         if is_glob(pattern) {
-            expand_glob(pattern, base, ignorer.as_ref(), &mut out)?;
+            globs.push(pattern);
         } else {
             expand_literal(pattern, base, &mut out);
         }
     }
+    if !globs.is_empty() {
+        expand_globs(&globs, base, gitignore, &mut out)?;
+    }
     out.sort();
     out.dedup();
     Ok(out)
-}
-
-/// Builds a matcher from the root `.gitignore`; an empty matcher (ignores
-/// nothing) when the file is absent or unreadable.
-fn build_gitignore(base: &Path) -> Gitignore {
-    let mut builder = GitignoreBuilder::new(base);
-    builder.add(base.join(".gitignore"));
-    builder.build().unwrap_or_else(|_| Gitignore::empty())
 }
 
 fn expand_literal(pattern: &str, base: &Path, out: &mut Vec<String>) {
@@ -55,36 +53,83 @@ fn expand_literal(pattern: &str, base: &Path, out: &mut Vec<String>) {
     }
 }
 
-fn expand_glob(
-    pattern: &str,
-    base: &Path,
-    ignorer: Option<&Gitignore>,
-    out: &mut Vec<String>,
-) -> Result<()> {
-    let joined = base.join(pattern);
-    let full = joined.to_string_lossy();
-    let entries = glob::glob(full.as_ref()).map_err(|source| Error::Pattern {
-        pattern: pattern.to_owned(),
-        source,
-    })?;
-    let mut matched = false;
-    for entry in entries.flatten() {
-        if !entry.is_file() {
+/// Compiles `globs` into a matcher, then walks `base` once (honouring the
+/// gitignore chain when `gitignore` is set) and collects every file that
+/// matches at least one pattern. Patterns matching nothing are warned about.
+fn expand_globs(globs: &[&str], base: &Path, gitignore: bool, out: &mut Vec<String>) -> Result<()> {
+    let set = build_globset(globs)?;
+    let mut matched = vec![false; globs.len()];
+    for entry in build_walker(base, gitignore) {
+        let Ok(entry) = entry else { continue };
+        if !entry.file_type().is_some_and(|kind| kind.is_file()) {
             continue;
         }
-        let rel = entry.strip_prefix(base).unwrap_or(&entry);
-        if let Some(ignorer) = ignorer {
-            if ignorer.matched_path_or_any_parents(rel, false).is_ignore() {
-                continue;
+        let path = entry.path();
+        let rel = path.strip_prefix(base).unwrap_or(path);
+        let candidate = normalize(&rel.to_string_lossy());
+        let hits = set.matches(&candidate);
+        if hits.is_empty() {
+            continue;
+        }
+        for index in hits {
+            if let Some(flag) = matched.get_mut(index) {
+                *flag = true;
             }
         }
-        matched = true;
-        out.push(normalize(rel.to_string_lossy().as_ref()));
+        out.push(candidate);
     }
-    if !matched {
-        log::warn!("pattern `{pattern}` matched no files");
+    for (index, pattern) in globs.iter().enumerate() {
+        if matched.get(index) == Some(&false) {
+            log::warn!("pattern `{pattern}` matched no files");
+        }
     }
     Ok(())
+}
+
+/// Builds a [`GlobSet`] from `globs`, treating `/` as a literal separator so
+/// `*` does not cross directories and `**` does (matching common glob tools).
+fn build_globset(globs: &[&str]) -> Result<GlobSet> {
+    let mut builder = GlobSetBuilder::new();
+    for pattern in globs {
+        let glob = GlobBuilder::new(pattern)
+            .literal_separator(true)
+            .build()
+            .map_err(|source| Error::Pattern {
+                pattern: (*pattern).to_owned(),
+                source,
+            })?;
+        builder.add(glob);
+    }
+    builder.build().map_err(|source| Error::Pattern {
+        pattern: globs.join(", "),
+        source,
+    })
+}
+
+/// Builds a file walker rooted at `base`. Hidden files are included (only
+/// ignore rules filter, never the dotfile heuristic) and the `.git` directory
+/// is always pruned. When `gitignore` is set, the full gitignore chain applies;
+/// `.gitignore` is also added as a custom ignore file so nested manifests are
+/// honoured even outside a git repository.
+fn build_walker(base: &Path, gitignore: bool) -> Walk {
+    let mut builder = WalkBuilder::new(base);
+    builder
+        .hidden(false)
+        .follow_links(false)
+        .ignore(false)
+        .git_ignore(gitignore)
+        .git_global(gitignore)
+        .git_exclude(gitignore)
+        .parents(gitignore)
+        .filter_entry(skip_git_dir);
+    if gitignore {
+        builder.add_custom_ignore_filename(".gitignore");
+    }
+    builder.build()
+}
+
+fn skip_git_dir(entry: &DirEntry) -> bool {
+    entry.file_name() != ".git"
 }
 
 fn normalize(path: &str) -> String {
@@ -137,6 +182,20 @@ mod tests {
     }
 
     #[test]
+    fn star_does_not_cross_directories_but_globstar_does() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        std::fs::create_dir(dir.path().join("sub")).expect("mkdir");
+        touch(dir.path(), "top.rs");
+        std::fs::write(dir.path().join("sub/nested.rs"), b"x").expect("write");
+
+        let shallow = expand(&["*.rs".to_owned()], dir.path(), true).expect("resolve");
+        assert_eq!(shallow, vec!["top.rs".to_owned()], "single star stays flat");
+
+        let deep = expand(&["**/*.rs".to_owned()], dir.path(), true).expect("resolve");
+        assert_eq!(deep, vec!["sub/nested.rs".to_owned(), "top.rs".to_owned()]);
+    }
+
+    #[test]
     fn gitignore_filters_globs_but_not_literals() {
         let dir = tempfile::tempdir().expect("tempdir");
         std::fs::write(dir.path().join(".gitignore"), "/target\n").expect("gitignore");
@@ -158,6 +217,22 @@ mod tests {
             literal,
             vec!["target/built.rs".to_owned()],
             "explicit literal overrides gitignore"
+        );
+    }
+
+    #[test]
+    fn nested_gitignore_is_honoured() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        std::fs::create_dir(dir.path().join("pkg")).expect("mkdir");
+        std::fs::write(dir.path().join("pkg/.gitignore"), "generated.rs\n").expect("nested");
+        std::fs::write(dir.path().join("pkg/kept.rs"), b"x").expect("write");
+        std::fs::write(dir.path().join("pkg/generated.rs"), b"x").expect("write");
+
+        let resolved = expand(&["**/*.rs".to_owned()], dir.path(), true).expect("resolve");
+        assert_eq!(
+            resolved,
+            vec!["pkg/kept.rs".to_owned()],
+            "nested .gitignore drops generated.rs"
         );
     }
 }

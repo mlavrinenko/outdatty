@@ -4,18 +4,18 @@ groups:
   cli-docs:
     source:
       src/cli.rs: 84e0069cb4587d2b641c81c68a734848f25e02ba879c666bdd3c1d5e88bc633e
-      src/commands.rs: 797d73f646e44e9ba784a5db998b8c7d21ac0d145b4ceedebe5cc24daa701f13
+      src/commands.rs: ea14cf7095165545e347e4617aca126fb91e3a3ac416df765efbf19a53886525
     dependents:
-      README.md: 76818d793ddc18fe676da6213af30c432a990a0a9805f82494430e259fb07929
+      README.md: ee263efc5412589b003086dfaac4ec93d2e9e2f7975226674af048f6268b1fcd
       www/index.html: 1f1ad8635d6be5ac5467f41f5d26fdb4fbc65153a04ac6b00221e0e09ff9dfca
   release-notes:
     source:
-      Cargo.toml: a243581bbf24b9fb3cca1bf9f05f987cf510fc4f72a46b66ed2a20b9021e0cb2
+      Cargo.toml: d537b21f4ebda9e9476db731f3c294b3c954147336a0e20b3e3a93373ce8894f
     dependents:
-      CHANGELOG.md: 34fa75ccbc5e680a2b4824df2adcf2cf7517e698a4eb94560d0990c5a63ae263
+      CHANGELOG.md: 201546069f49a46ef72c73cf465675c67dab74e2d13b43183ce0438d1f46dd49
   schema:
     source:
-      src/manifest.rs: 632a6af07912bef648f9a1c79d1f6eba56bb849c550b3e56da8dcaf072ffe259
+      src/manifest.rs: c5d5a9e316a25a5a9e62956d16ad1c1545e24e9ca50e1d35afec0375d1a1bcd0
     dependents:
       examples/outdatty.yaml: e52950ed9108c5473041b21972f6dc4112d328efae31338f173cbf5ef6f9cdf9
-      schema/outdatty.schema.json: d9510761d3018dbb6b0c1ea4612626c35af4174d27fb24fb4bdb6db654e91704
+      schema/outdatty.schema.json: c34a2071f08ec08fb65ca57ffb84b548d2ca484111e9e16da0b13ec2e7f92502

@@ -38,6 +38,14 @@ Minimum 70% coverage enforced via `cargo-tarpaulin`. Run `just cover` to check.
 
 When a file exceeds the limit, split it into modules or separate documents.
 
+## Commit Conventions
+
+Use [Conventional Commits](https://www.conventionalcommits.org/): a `type(scope):
+summary` subject (`feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`, ...).
+
+No `Refs:` or other trailers are required for now. If the project later adopts an
+issue tracker, this section will define how to reference it.
+
 ## Submitting Changes
 
 1. Run `just check` before submitting — it runs clippy, tests, and file size checks

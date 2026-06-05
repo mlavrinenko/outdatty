@@ -178,7 +178,10 @@ fn make_filter(manifest: &Manifest, groups: &[String]) -> Result<Filter> {
             return Err(Error::UnknownGroup(wanted.clone()));
         }
     }
-    Ok(Filter::Only(groups.to_vec()))
+    let mut wanted = groups.to_vec();
+    wanted.sort();
+    wanted.dedup();
+    Ok(Filter::Only(wanted))
 }
 
 #[cfg(test)]

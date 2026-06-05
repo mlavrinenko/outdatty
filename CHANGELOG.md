@@ -28,6 +28,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Glob expansion now honours the full gitignore chain (nested `.gitignore`,
+  global excludes, `.git/info/exclude`) instead of only the root `.gitignore`,
+  never traverses `.git`, and no longer follows symlinks. Internally it uses
+  `globset` + `ignore` in place of the `glob` crate.
+- Files are hashed in parallel.
+- `check` plain output now prints the exact `outdatty update --group <id>`
+  command for each out-of-date group, and warnings (missing literals, zero-match
+  globs) are shown by default.
+- `update` JSON output gained a `version`/`total` envelope, matching `check`.
 - A missing literal source is now treated as a change (drift) rather than a
   hard error, matching how a vanished glob match behaves.
 - The lockfile is written atomically (temp file + rename).

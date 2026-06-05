@@ -54,7 +54,8 @@ Global flags: `--manifest <path>`, `--lock <path>`, `--format plain|json|quiet`.
 
 Exit codes: `0` in sync, `1` drift (check only), `2` operational error
 (unknown group, duplicate group name, unparseable manifest, incompatible
-lockfile).
+lockfile). A missing lockfile is not an operational error: `check` treats every
+group as new and exits `1`, so run `outdatty update` to create it.
 
 ### Manifest
 
@@ -70,9 +71,31 @@ groups:
 
 See [examples/outdatty.yaml](examples/outdatty.yaml). A path that disappears —
 a deleted literal, or a glob that no longer matches a previously locked file —
-counts as a change to confirm. Glob expansion skips files ignored by the
-repository's root `.gitignore` (so build output never enters a group); set
-`gitignore: false` at the top of the manifest to match every file.
+counts as a change to confirm. Glob expansion skips files ignored by git — the
+`.gitignore` files (root and nested), the global excludes, and
+`.git/info/exclude` — so build output never enters a group; set
+`gitignore: false` at the top of the manifest to match every file. The `.git`
+directory is never traversed, and symlinks are not followed during glob
+expansion.
+
+## CI and pre-commit
+
+Gate a repository by running `check` in CI; it exits non-zero on drift.
+
+```yaml
+# .github/workflows/outdatty.yml
+- run: outdatty check --format quiet
+```
+
+For a local guard, add a pre-commit hook:
+
+```bash
+# .git/hooks/pre-commit
+outdatty check --format quiet || {
+  echo "outdatty: a source changed without its dependents; run 'outdatty update'" >&2
+  exit 1
+}
+```
 
 ## Development
 

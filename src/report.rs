@@ -3,7 +3,7 @@
 use clap::ValueEnum;
 use serde::Serialize;
 
-use crate::engine::{GroupReport, Report, Status, UpdateAction, UpdateReport};
+use crate::engine::{GroupReport, Report, Status, UpdateAction, UpdateEntry, UpdateReport};
 use crate::error::Result;
 
 /// Schema version of the JSON report payload. Bump on incompatible changes.
@@ -45,6 +45,25 @@ impl<'a> ReportView<'a> {
             total: report.groups.len(),
             out_of_date,
             groups: &report.groups,
+        }
+    }
+}
+
+/// Machine-readable view of an update report, carrying the same `version` and
+/// `total` envelope as [`ReportView`] so consumers see a consistent shape.
+#[derive(Serialize)]
+struct UpdateView<'a> {
+    version: u32,
+    total: usize,
+    entries: &'a [UpdateEntry],
+}
+
+impl<'a> UpdateView<'a> {
+    fn new(report: &'a UpdateReport) -> Self {
+        Self {
+            version: JSON_VERSION,
+            total: report.entries.len(),
+            entries: &report.entries,
         }
     }
 }
@@ -101,6 +120,12 @@ fn push_group_line(out: &mut String, group: &GroupReport) {
     for path in &group.changed_dependents {
         out.push_str(&format!("    dependent changed: {path}\n"));
     }
+    if group.status.is_failure() {
+        out.push_str(&format!(
+            "    confirm with:      outdatty update --group {}\n",
+            group.id
+        ));
+    }
 }
 
 fn status_label(status: Status) -> &'static str {
@@ -120,7 +145,7 @@ fn status_label(status: Status) -> &'static str {
 pub fn render_update(report: &UpdateReport, format: Format) -> Result<String> {
     match format {
         Format::Quiet => Ok(String::new()),
-        Format::Json => to_json(report),
+        Format::Json => to_json(&UpdateView::new(report)),
         Format::Plain => Ok(render_update_plain(report)),
     }
 }
@@ -175,6 +200,14 @@ mod tests {
         assert!(text.contains("stale-one"));
         assert!(text.contains("source changed:    code.rs"));
         assert!(text.contains("out of date"));
+        assert!(
+            text.contains("confirm with:      outdatty update --group stale-one"),
+            "failing group suggests the scoped command"
+        );
+        assert!(
+            !text.contains("update --group ok-one"),
+            "healthy group gets no suggestion"
+        );
     }
 
     #[test]
@@ -223,6 +256,11 @@ mod tests {
         };
         let json = render_update(&report, Format::Json).expect("render");
         assert!(json.contains("\"action\": \"updated\""));
+        assert!(
+            json.contains("\"version\": 1"),
+            "update json carries version"
+        );
+        assert!(json.contains("\"total\": 1"), "update json carries total");
         assert!(
             render_update(&report, Format::Quiet)
                 .expect("render")

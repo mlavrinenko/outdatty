@@ -3,6 +3,7 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use serde::Serialize;
 
 use crate::error::Result;
@@ -94,12 +95,15 @@ fn hash_patterns(
     base: &Path,
     gitignore: bool,
 ) -> Result<BTreeMap<String, String>> {
-    let mut map = BTreeMap::new();
-    for path in resolve::expand(patterns, base, gitignore)? {
-        let hash = hashing::hash_file(&base.join(&path))?;
-        map.insert(path, hash);
-    }
-    Ok(map)
+    let paths = resolve::expand(patterns, base, gitignore)?;
+    // Hash files in parallel; the BTreeMap collect restores deterministic order.
+    paths
+        .into_par_iter()
+        .map(|path| {
+            let hash = hashing::hash_file(&base.join(&path))?;
+            Ok((path, hash))
+        })
+        .collect()
 }
 
 fn snapshot_group(group: &Group, base: &Path, gitignore: bool) -> Result<GroupSnapshot> {
@@ -249,10 +253,10 @@ pub fn build(
     next.version = lock::VERSION;
     next.algorithm = hashing::ALGORITHM.to_owned();
     let mut entries = Vec::new();
-    let mut keep = Vec::new();
+    let mut keep = std::collections::BTreeSet::new();
     for (index, group) in manifest.groups.iter().enumerate() {
         let id = group.id(index);
-        keep.push(id.clone());
+        keep.insert(id.clone());
         if !filter.selects(&id) {
             continue;
         }

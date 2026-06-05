@@ -86,7 +86,7 @@ pub enum Error {
         /// The offending pattern.
         pattern: String,
         /// Underlying glob error.
-        source: glob::PatternError,
+        source: globset::Error,
     },
 
     /// A requested group does not exist in the manifest.

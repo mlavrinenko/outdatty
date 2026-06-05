@@ -7,14 +7,23 @@ default:
 # Run fixes, then other checks
 fix-check: fmt clippy-fix check
 
-# Run all checks in parallel (fmt + clippy + tests + unused deps + file size)
+# Run all checks in parallel (fmt + clippy + tests + unused deps + file size + self-check)
 check:
     parallel -j 0 -- \
         "chronic just fmt-check" \
         "chronic cargo clippy --workspace --all-targets -q -- -D warnings" \
         "chronic cargo test --workspace -q" \
         "chronic just machete" \
-        "chronic just check-file-size"
+        "chronic just check-file-size" \
+        "chronic just selfcheck"
+
+# Dogfood: run outdatty against this repository's own outdatty.yaml
+selfcheck:
+    cargo run -q -- check
+
+# Re-confirm this repository's own dependency groups
+selfupdate:
+    cargo run -q -- update
 
 # Run tests only
 test *ARGS:
@@ -69,7 +78,12 @@ check-file-size:
 # Tag a release and push (usage: just release 0.1.0)
 release VERSION:
     #!/usr/bin/env bash
-    set -euo pipefail
+    set -eo pipefail
+    cargo_version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+    if [ "{{ VERSION }}" != "$cargo_version" ]; then
+        echo "error: requested v{{ VERSION }} but Cargo.toml is $cargo_version; bump Cargo.toml first" >&2
+        exit 1
+    fi
     just check
     git tag -a "v{{ VERSION }}" -m "v{{ VERSION }}"
     git push origin "v{{ VERSION }}"

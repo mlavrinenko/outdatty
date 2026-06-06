@@ -9,7 +9,7 @@ groups:
       src/report.rs: 548847915176949eadd37536ae55155156325971f371231d91b46f650552e8d6
     dependents:
       README.md: fe17262c39a0f1ec3ca3823145d470cb877fb6f9306a77860818b303bd5e3fdf
-      www/index.html: 94aba3ba5f9f80ca7c4be96a70ee9d0b09b9999a1d8f46baa0c06496935da66a
+      www/index.html: 34fe74a88a5d3cc64100566acffa1a4213a53d42f777ea41a0aa950547d92d2c
   release-notes:
     source:
       Cargo.toml: d537b21f4ebda9e9476db731f3c294b3c954147336a0e20b3e3a93373ce8894f

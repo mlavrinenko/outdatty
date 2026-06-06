@@ -259,8 +259,8 @@
         <p class="tagline">Catch outdated artifacts before they ship.</p>
         <p class="subline">
           Declare a dependency graph between arbitrary files.<br />
-          CI fails when a  source changes but its dependents were not re-confirmed.<br />
-          <span class="ko">drift &rarr; exit 1</span>,
+          CI fails when a source changes but its dependents were not re-confirmed.<br />
+          <span class="ko">out of date &rarr; exit 1</span>,
           <span class="ok">in sync &rarr; exit 0</span>.
         </p>
         <div class="cta">
@@ -284,22 +284,24 @@
           </div>
 <pre><span class="prompt">$</span> <span class="cmd">outdatty check</span>
 <span class="ko">[ stale ]</span>  feature
-    <span class="dim">source changed:    src/feature.rs</span>
+    <span class="dim">source changed:    src/feature.rs</span> 
     <span class="dim">confirm with:      outdatty update --group feature</span>
+<span class="warn">[ drift ]</span>  guide
 <span class="ok">[  ok   ]</span>  api
 <span class="ok">[  ok   ]</span>  schema
 
-<span class="ko">1 of 3 group(s) out of date; review and run `outdatty update`</span>  <span class="dim">(exit 1)</span>
+<span class="ko">1 of 4 group(s) out of date; review and run `outdatty update`</span>  <span class="dim">(exit 1)</span>
 
-<span class="prompt">$</span> <span class="cmd">outdatty update --group feature</span>   <span class="dim"># review, then re-confirm</span>
+<span class="prompt">$</span> <span class="cmd">outdatty update --group feature</span>
 updated  feature
 
 <span class="prompt">$</span> <span class="cmd">outdatty check</span>
 <span class="ok">[  ok   ]</span>  feature
+<span class="warn">[ drift ]</span>  guide
 <span class="ok">[  ok   ]</span>  api
 <span class="ok">[  ok   ]</span>  schema
 
-<span class="ok">3 group(s) checked, none out of date</span>  <span class="dim">(exit 0)</span></pre>
+<span class="ok">4 group(s) checked, none out of date</span>  <span class="dim">(exit 0)</span></pre>
         </div>
       </div>
     </section>

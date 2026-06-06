@@ -5,6 +5,7 @@ use serde::Serialize;
 
 use crate::engine::{GroupReport, Report, Status, UpdateAction, UpdateEntry, UpdateReport};
 use crate::error::Result;
+use crate::style::Styler;
 
 /// Schema version of the JSON report payload. Bump on incompatible changes.
 const JSON_VERSION: u32 = 1;
@@ -70,14 +71,17 @@ impl<'a> UpdateView<'a> {
 
 /// Renders an evaluation [`Report`] in the requested `format`.
 ///
+/// `color` only affects [`Format::Plain`]; JSON and quiet output are never
+/// styled so they stay machine-parseable.
+///
 /// # Errors
 ///
 /// Returns [`crate::error::Error::Json`] if JSON serialization fails.
-pub fn render_report(report: &Report, format: Format) -> Result<String> {
+pub fn render_report(report: &Report, format: Format, color: bool) -> Result<String> {
     match format {
         Format::Quiet => Ok(String::new()),
         Format::Json => Ok(to_json(&ReportView::new(report))?),
-        Format::Plain => Ok(render_report_plain(report)),
+        Format::Plain => Ok(render_report_plain(report, Styler::new(color))),
     }
 }
 
@@ -88,13 +92,13 @@ fn to_json<T: Serialize>(value: &T) -> Result<String> {
     Ok(text)
 }
 
-fn render_report_plain(report: &Report) -> String {
+fn render_report_plain(report: &Report, styler: Styler) -> String {
     if report.groups.is_empty() {
         return "no groups defined\n".to_owned();
     }
     let mut out = String::new();
     for group in &report.groups {
-        push_group_line(&mut out, group);
+        push_group_line(&mut out, group, styler);
     }
     let total = report.groups.len();
     let failures = report
@@ -102,71 +106,86 @@ fn render_report_plain(report: &Report) -> String {
         .iter()
         .filter(|group| group.status.is_failure())
         .count();
+    out.push('\n');
     if failures == 0 {
-        out.push_str(&format!("\n{total} group(s) checked, none out of date\n"));
+        out.push_str(&styler.green(&format!("{total} group(s) checked, none out of date")));
     } else {
-        out.push_str(&format!(
-            "\n{failures} of {total} group(s) out of date; review and run `outdatty update`\n"
-        ));
+        out.push_str(&styler.red(&format!(
+            "{failures} of {total} group(s) out of date; review and run `outdatty update`"
+        )));
     }
+    out.push('\n');
     out
 }
 
-fn push_group_line(out: &mut String, group: &GroupReport) {
-    out.push_str(&format!("{}  {}\n", status_label(group.status), group.id));
+fn push_group_line(out: &mut String, group: &GroupReport, styler: Styler) {
+    out.push_str(&format!(
+        "{}  {}\n",
+        status_label(styler, group.status),
+        group.id
+    ));
     for path in &group.changed_sources {
-        out.push_str(&format!("    source changed:    {path}\n"));
+        out.push_str(&styler.dim(&format!("    source changed:    {path}")));
+        out.push('\n');
     }
     for path in &group.changed_dependents {
-        out.push_str(&format!("    dependent changed: {path}\n"));
+        out.push_str(&styler.dim(&format!("    dependent changed: {path}")));
+        out.push('\n');
     }
     if group.status.is_failure() {
-        out.push_str(&format!(
-            "    confirm with:      outdatty update --group {}\n",
+        out.push_str(&styler.dim(&format!(
+            "    confirm with:      outdatty update --group {}",
             group.id
-        ));
+        )));
+        out.push('\n');
     }
 }
 
-fn status_label(status: Status) -> &'static str {
+fn status_label(styler: Styler, status: Status) -> String {
     match status {
-        Status::Ok => "[  ok   ]",
-        Status::DependentDrift => "[ drift ]",
-        Status::Stale => "[ stale ]",
-        Status::New => "[  new  ]",
+        Status::Ok => styler.green("[  ok   ]"),
+        Status::DependentDrift => styler.yellow("[ drift ]"),
+        Status::Stale => styler.red("[ stale ]"),
+        Status::New => styler.red("[  new  ]"),
     }
 }
 
 /// Renders an [`UpdateReport`] in the requested `format`.
 ///
+/// `color` only affects [`Format::Plain`].
+///
 /// # Errors
 ///
 /// Returns [`crate::error::Error::Json`] if JSON serialization fails.
-pub fn render_update(report: &UpdateReport, format: Format) -> Result<String> {
+pub fn render_update(report: &UpdateReport, format: Format, color: bool) -> Result<String> {
     match format {
         Format::Quiet => Ok(String::new()),
         Format::Json => to_json(&UpdateView::new(report)),
-        Format::Plain => Ok(render_update_plain(report)),
+        Format::Plain => Ok(render_update_plain(report, Styler::new(color))),
     }
 }
 
-fn render_update_plain(report: &UpdateReport) -> String {
+fn render_update_plain(report: &UpdateReport, styler: Styler) -> String {
     if report.entries.is_empty() {
         return "no groups updated\n".to_owned();
     }
     let mut out = String::new();
     for entry in &report.entries {
-        out.push_str(&format!("{}  {}\n", action_label(entry.action), entry.id));
+        out.push_str(&format!(
+            "{}  {}\n",
+            action_label(styler, entry.action),
+            entry.id
+        ));
     }
     out
 }
 
-fn action_label(action: UpdateAction) -> &'static str {
+fn action_label(styler: Styler, action: UpdateAction) -> String {
     match action {
-        UpdateAction::Added => "added  ",
-        UpdateAction::Updated => "updated",
-        UpdateAction::Unchanged => "current",
-        UpdateAction::Removed => "removed",
+        UpdateAction::Added => styler.green("added  "),
+        UpdateAction::Updated => styler.yellow("updated"),
+        UpdateAction::Unchanged => styler.dim("current"),
+        UpdateAction::Removed => styler.red("removed"),
     }
 }
 
@@ -196,7 +215,7 @@ mod tests {
 
     #[test]
     fn plain_lists_groups_and_summary() {
-        let text = render_report(&sample_report(), Format::Plain).expect("render");
+        let text = render_report(&sample_report(), Format::Plain, false).expect("render");
         assert!(text.contains("stale-one"));
         assert!(text.contains("source changed:    code.rs"));
         assert!(text.contains("out of date"));
@@ -211,14 +230,27 @@ mod tests {
     }
 
     #[test]
+    fn plain_is_uncolored_when_color_off_and_styled_when_on() {
+        let plain = render_report(&sample_report(), Format::Plain, false).expect("render");
+        assert!(!plain.contains('\u{1b}'), "no escapes without color");
+
+        let colored = render_report(&sample_report(), Format::Plain, true).expect("render");
+        assert!(colored.contains('\u{1b}'), "escapes present with color");
+        assert!(
+            colored.contains("source changed:    code.rs"),
+            "payload text survives styling"
+        );
+    }
+
+    #[test]
     fn quiet_is_empty() {
-        let text = render_report(&sample_report(), Format::Quiet).expect("render");
+        let text = render_report(&sample_report(), Format::Quiet, false).expect("render");
         assert!(text.is_empty());
     }
 
     #[test]
     fn json_is_machine_readable() {
-        let text = render_report(&sample_report(), Format::Json).expect("render");
+        let text = render_report(&sample_report(), Format::Json, false).expect("render");
         assert!(text.contains("\"status\": \"stale\""));
         assert!(text.contains("\"changed_sources\""));
         assert!(text.contains("\"failed\": true"), "carries failure signal");
@@ -229,7 +261,7 @@ mod tests {
     #[test]
     fn empty_report_is_reported() {
         let report = Report { groups: Vec::new() };
-        let text = render_report(&report, Format::Plain).expect("render");
+        let text = render_report(&report, Format::Plain, false).expect("render");
         assert!(text.contains("no groups"));
     }
 
@@ -241,7 +273,7 @@ mod tests {
                 action: UpdateAction::Added,
             }],
         };
-        let text = render_update(&report, Format::Plain).expect("render");
+        let text = render_update(&report, Format::Plain, false).expect("render");
         assert!(text.contains("added"));
         assert!(text.contains('g'));
     }
@@ -254,7 +286,7 @@ mod tests {
                 action: UpdateAction::Updated,
             }],
         };
-        let json = render_update(&report, Format::Json).expect("render");
+        let json = render_update(&report, Format::Json, false).expect("render");
         assert!(json.contains("\"action\": \"updated\""));
         assert!(
             json.contains("\"version\": 1"),
@@ -262,7 +294,7 @@ mod tests {
         );
         assert!(json.contains("\"total\": 1"), "update json carries total");
         assert!(
-            render_update(&report, Format::Quiet)
+            render_update(&report, Format::Quiet, false)
                 .expect("render")
                 .is_empty()
         );
@@ -273,7 +305,7 @@ mod tests {
         let report = UpdateReport {
             entries: Vec::new(),
         };
-        let text = render_update(&report, Format::Plain).expect("render");
+        let text = render_update(&report, Format::Plain, false).expect("render");
         assert!(text.contains("no groups updated"));
     }
 }

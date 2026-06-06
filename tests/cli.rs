@@ -164,6 +164,27 @@ fn unknown_group_is_operational_error() {
 }
 
 #[test]
+fn color_always_emits_ansi_never_is_plain() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    manifest(dir.path());
+    write(dir.path(), "code.rs", "a");
+    write(dir.path(), "doc.md", "b");
+
+    bin()
+        .current_dir(&dir)
+        .args(["check", "--color", "always"])
+        .assert()
+        .code(1)
+        .stdout(contains("\u{1b}["));
+    bin()
+        .current_dir(&dir)
+        .args(["check", "--color", "never"])
+        .assert()
+        .code(1)
+        .stdout(contains("\u{1b}[").not());
+}
+
+#[test]
 fn status_reports_drift_without_failing() {
     let dir = tempfile::tempdir().expect("tempdir");
     manifest(dir.path());

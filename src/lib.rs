@@ -20,6 +20,7 @@ pub mod lock;
 pub mod manifest;
 pub mod report;
 pub mod resolve;
+pub mod style;
 
 pub use cli::run;
 pub use error::{Error, Result};

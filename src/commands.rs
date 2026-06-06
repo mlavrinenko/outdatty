@@ -35,6 +35,8 @@ pub struct Config {
     pub lock: Option<PathBuf>,
     /// Output format for rendered results.
     pub format: Format,
+    /// Whether plain output should be colorized.
+    pub color: bool,
 }
 
 /// Loaded manifest plus the paths derived for an operation.
@@ -118,7 +120,7 @@ fn evaluate(config: &Config, groups: &[String]) -> Result<Report> {
 /// resolved, hashed, or rendered.
 pub fn check(config: &Config, groups: &[String]) -> Result<Outcome> {
     let report = evaluate(config, groups)?;
-    let output = report::render_report(&report, config.format)?;
+    let output = report::render_report(&report, config.format, config.color)?;
     Ok(Outcome {
         output,
         failed: report.has_failure(),
@@ -133,7 +135,7 @@ pub fn check(config: &Config, groups: &[String]) -> Result<Outcome> {
 /// resolved, hashed, or rendered.
 pub fn status(config: &Config, groups: &[String]) -> Result<String> {
     let report = evaluate(config, groups)?;
-    report::render_report(&report, config.format)
+    report::render_report(&report, config.format, config.color)
 }
 
 /// Refreshes the lockfile for the selected groups, returning the message to
@@ -149,7 +151,7 @@ pub fn update(config: &Config, groups: &[String]) -> Result<String> {
     let filter = make_filter(&ctx.manifest, groups)?;
     let (next, report) = engine::build(&ctx.manifest, &lock, &ctx.base, &filter)?;
     next.save(&ctx.lock_path)?;
-    report::render_update(&report, config.format)
+    report::render_update(&report, config.format, config.color)
 }
 
 /// Returns the JSON schema for the manifest.
@@ -209,6 +211,7 @@ mod tests {
             manifest: Some(dir.join("outdatty.yaml")),
             lock: Some(dir.join("outdatty.lock")),
             format: Format::Plain,
+            color: false,
         }
     }
 
@@ -245,6 +248,7 @@ mod tests {
             manifest: Some(dir.path().join("outdatty.yaml")),
             lock: None,
             format: Format::Plain,
+            color: false,
         };
         let message = init(&config, false).expect("init");
         assert!(message.contains("wrote"));
@@ -259,6 +263,7 @@ mod tests {
             manifest: Some(dir.path().join("outdatty.yaml")),
             lock: None,
             format: Format::Quiet,
+            color: false,
         };
         assert!(init(&config, false).expect("init").is_empty());
     }
@@ -304,6 +309,7 @@ mod tests {
             manifest: Some(dir.path().join("absent.yaml")),
             lock: None,
             format: Format::Plain,
+            color: false,
         };
         assert!(check(&config, &[]).is_err());
     }

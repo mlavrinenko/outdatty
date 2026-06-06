@@ -8,6 +8,7 @@ use clap::{Parser, Subcommand};
 use crate::commands::{self, Config};
 use crate::error::Result;
 use crate::report::Format;
+use crate::style::ColorChoice;
 
 /// Catch outdated artifacts via a declared dependency graph.
 #[derive(Debug, Parser)]
@@ -24,6 +25,11 @@ pub struct Cli {
     /// Output format.
     #[arg(long, global = true, default_value = "plain")]
     format: Format,
+
+    /// When to colorize plain output. Auto colorizes only an interactive
+    /// terminal and honours `NO_COLOR`.
+    #[arg(long, global = true, default_value = "auto")]
+    color: ColorChoice,
 
     #[command(subcommand)]
     command: Command,
@@ -76,6 +82,7 @@ impl Cli {
             manifest: self.manifest.clone(),
             lock: self.lock.clone(),
             format: self.format,
+            color: self.color.resolve(),
         }
     }
 

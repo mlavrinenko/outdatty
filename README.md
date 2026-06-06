@@ -65,7 +65,10 @@ outdatty update --group docs  # confirm only one group
 outdatty schema               # print the manifest JSON schema
 ```
 
-Global flags: `--manifest <path>`, `--lock <path>`, `--format plain|json|quiet`.
+Global flags: `--manifest <path>`, `--lock <path>`, `--format plain|json|quiet`,
+`--color auto|always|never`. Plain output is colorized on an interactive
+terminal; `auto` (the default) disables color when piped or when `NO_COLOR` is
+set.
 
 Exit codes: `0` in sync, `1` drift (check only), `2` operational error
 (unknown group, duplicate group name, unparseable manifest, incompatible

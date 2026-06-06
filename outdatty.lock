@@ -4,11 +4,11 @@ groups:
   cli-docs:
     source:
       flake.nix: 2db3571b76e3152d974b6e0ed7dba928436f4df5c89016f3c6972372d3a2373a
-      src/cli.rs: 84e0069cb4587d2b641c81c68a734848f25e02ba879c666bdd3c1d5e88bc633e
-      src/commands.rs: ea14cf7095165545e347e4617aca126fb91e3a3ac416df765efbf19a53886525
-      src/report.rs: 903a82a5aa680f5eac2619604ca2567fe37db8b05310b60e39ac5d246728576d
+      src/cli.rs: fb637c7aec8d3d939b77b55b913d9a0df678309ae04fd84572814c147a3f5ecc
+      src/commands.rs: 01dde2c77ab9e0e4007724cb0cd3e059806e683f9d9d296cd095863a8676ce5d
+      src/report.rs: 548847915176949eadd37536ae55155156325971f371231d91b46f650552e8d6
     dependents:
-      README.md: b06c84a467dfc1454f4a4d80b9a023e5fb85282fa23902d9eae9ebe93f9ae66d
+      README.md: fe17262c39a0f1ec3ca3823145d470cb877fb6f9306a77860818b303bd5e3fdf
       www/index.html: 94aba3ba5f9f80ca7c4be96a70ee9d0b09b9999a1d8f46baa0c06496935da66a
   release-notes:
     source:

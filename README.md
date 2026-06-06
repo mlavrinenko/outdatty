@@ -34,6 +34,21 @@ one question: did a source change without its dependents being confirmed?
 cargo install outdatty
 ```
 
+### With Nix
+
+Run without installing:
+
+```bash
+nix run github:mlavrinenko/outdatty -- check
+```
+
+Or add it to your flake inputs:
+
+```nix
+# flake.nix
+outdatty.url = "github:mlavrinenko/outdatty";
+```
+
 ### From binary releases
 
 Download a pre-built binary from the

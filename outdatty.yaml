@@ -12,12 +12,15 @@ groups:
       - schema/outdatty.schema.json
       - examples/outdatty.yaml
 
-  # The CLI surface (subcommands, flags, exit codes) is documented by hand;
-  # editing it flags the docs as needing review.
+  # The CLI surface (subcommands, flags, exit codes), the rendered output shown
+  # in the docs, and the install methods are documented by hand; editing any of
+  # them flags the docs as needing review.
   - name: cli-docs
     source:
       - src/cli.rs
       - src/commands.rs
+      - src/report.rs
+      - flake.nix
     dependents:
       - README.md
       - www/index.html

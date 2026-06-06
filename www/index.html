@@ -196,6 +196,23 @@
     .install-grid { display: grid; gap: 1.25rem; }
     .install-grid h3 { font-family: var(--mono); font-size: 0.95rem; margin: 0 0 0.5rem; color: var(--muted); }
 
+    /* tabs */
+    .tabs { display: flex; gap: 0.4rem; flex-wrap: wrap; margin: 0 0 0.9rem; }
+    .tab {
+      font-family: var(--mono);
+      font-size: 0.86rem;
+      padding: 0.4rem 0.9rem;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .tab:hover { color: var(--text); }
+    .tab[aria-selected="true"] { background: var(--surface-2); color: var(--text); border-color: var(--green); }
+    .tabpanel[hidden] { display: none; }
+    .tabpanel p.lead { margin: 0; }
+
     /* footer */
     footer { border-top: 1px solid var(--border); padding: 2.5rem 0 3.5rem; }
     footer .wrap { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
@@ -266,17 +283,23 @@
             <span class="t">outdatty check</span>
           </div>
 <pre><span class="prompt">$</span> <span class="cmd">outdatty check</span>
-<span class="ko">&#10007; feature</span>  <span class="dim">source changed, dependents not confirmed</span>
-    <span class="dim">source</span>      src/feature.rs
-    <span class="dim">dependent</span>   docs/feature.mdx
-    <span class="dim">dependent</span>   tests/feature.rs
-<span class="ko">drift: 1 of 3 groups out of date</span>  <span class="dim">(exit 1)</span>
+<span class="ko">[ stale ]</span>  feature
+    <span class="dim">source changed:    src/feature.rs</span>
+    <span class="dim">confirm with:      outdatty update --group feature</span>
+<span class="ok">[  ok   ]</span>  api
+<span class="ok">[  ok   ]</span>  schema
+
+<span class="ko">1 of 3 group(s) out of date; review and run `outdatty update`</span>  <span class="dim">(exit 1)</span>
 
 <span class="prompt">$</span> <span class="cmd">outdatty update --group feature</span>   <span class="dim"># review, then re-confirm</span>
-<span class="ok">&#10003; feature</span>  <span class="dim">3 files re-locked</span>
+updated  feature
 
 <span class="prompt">$</span> <span class="cmd">outdatty check</span>
-<span class="ok">&#10003; all 3 groups in sync</span>  <span class="dim">(exit 0)</span></pre>
+<span class="ok">[  ok   ]</span>  feature
+<span class="ok">[  ok   ]</span>  api
+<span class="ok">[  ok   ]</span>  schema
+
+<span class="ok">3 group(s) checked, none out of date</span>  <span class="dim">(exit 0)</span></pre>
         </div>
       </div>
     </section>
@@ -355,15 +378,27 @@ groups:
         <h2><span class="hash">#</span> Install</h2>
         <div class="install-grid">
           <div>
-            <h3>From crates.io</h3>
+            <div class="tabs" role="tablist" aria-label="Install method">
+              <button class="tab" role="tab" id="tab-nix" aria-controls="panel-nix" aria-selected="true">Nix</button>
+              <button class="tab" role="tab" id="tab-cargo" aria-controls="panel-cargo" aria-selected="false">crates.io</button>
+              <button class="tab" role="tab" id="tab-bin" aria-controls="panel-bin" aria-selected="false">Binary</button>
+            </div>
+            <div class="tabpanel" role="tabpanel" id="panel-nix" aria-labelledby="tab-nix">
+<pre><span class="dim"># run without installing</span>
+<span class="prompt">$</span> <span class="cmd">nix run github:mlavrinenko/outdatty -- check</span>
+
+<span class="dim"># or add it to your flake inputs</span>
+inputs.outdatty.url = <span class="cmd">"github:mlavrinenko/outdatty"</span>;</pre>
+            </div>
+            <div class="tabpanel" role="tabpanel" id="panel-cargo" aria-labelledby="tab-cargo" hidden>
 <pre><span class="prompt">$</span> <span class="cmd">cargo install outdatty</span></pre>
-          </div>
-          <div>
-            <h3>Pre-built binary</h3>
-            <p class="lead" style="margin:0">
-              Download from the
-              <a href="https://github.com/mlavrinenko/outdatty/releases/latest">latest release</a>.
-            </p>
+            </div>
+            <div class="tabpanel" role="tabpanel" id="panel-bin" aria-labelledby="tab-bin" hidden>
+              <p class="lead">
+                Download a pre-built binary from the
+                <a href="https://github.com/mlavrinenko/outdatty/releases/latest">latest release</a>.
+              </p>
+            </div>
           </div>
           <div>
             <h3>Gate CI</h3>
@@ -390,5 +425,20 @@ groups:
       <span class="copy">blake3 &middot; no telemetry</span>
     </div>
   </footer>
+
+  <script>
+    document.querySelectorAll('[role="tablist"]').forEach(function (list) {
+      var tabs = Array.prototype.slice.call(list.querySelectorAll('[role="tab"]'));
+      tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          tabs.forEach(function (other) {
+            var selected = other === tab;
+            other.setAttribute('aria-selected', String(selected));
+            document.getElementById(other.getAttribute('aria-controls')).hidden = !selected;
+          });
+        });
+      });
+    });
+  </script>
 </body>
 </html>

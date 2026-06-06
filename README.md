@@ -115,21 +115,10 @@ outdatty check --format quiet || {
 }
 ```
 
-## Development
+## Contributing
 
-Prerequisites: [Nix](https://nixos.org/) with flakes enabled.
-
-```bash
-direnv allow   # or: nix develop
-
-just check     # fmt + clippy + tests + file-size check
-just build
-just test
-just cover     # code coverage (70% minimum)
-just fmt       # format code
-```
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for coding conventions.
+Development setup and coding conventions live in
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

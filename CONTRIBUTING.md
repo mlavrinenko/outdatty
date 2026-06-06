@@ -1,5 +1,19 @@
 # Contributing to outdatty
 
+## Development
+
+Prerequisites: [Nix](https://nixos.org/) with flakes enabled.
+
+```bash
+direnv allow   # or: nix develop
+
+just check     # fmt + clippy + tests + file-size check
+just build
+just test
+just cover     # code coverage (70% minimum)
+just fmt       # format code
+```
+
 ## Code Style
 
 All clippy lints are set to `deny` level — the project will not compile with violations.

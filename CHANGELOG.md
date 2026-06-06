@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-06-06
+
 ### Added
 
 - Declarative YAML manifest (`outdatty.yaml`) describing dependency groups of
@@ -44,3 +46,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `version`; `status` and update `action` values use `snake_case`; payloads end
   with a newline.
 - `update` reports pruned orphan lockfile entries with a `removed` action.
+
+[Unreleased]: https://github.com/mlavrinenko/outdatty/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/mlavrinenko/outdatty/releases/tag/v0.1.0

@@ -3,27 +3,392 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>outdatty</title>
+  <title>outdatty — catch outdated artifacts in CI</title>
+  <meta name="description" content="Declare a dependency graph between arbitrary files and have CI fail when a source changes but its dependents were not re-confirmed. Language- and format-agnostic.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ccircle cx='9' cy='16' r='4.5' fill='%233fb950'/%3E%3Ccircle cx='23' cy='16' r='4.5' fill='%23d29922'/%3E%3Cpath d='M13.5 16h2M16.5 16h2' stroke='%23f85149' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 4rem auto; padding: 0 1rem; line-height: 1.6; }
-    h1 { margin-bottom: 0.25rem; }
-    code { background: #f4f4f4; padding: 0.15em 0.4em; border-radius: 3px; }
-    pre code { display: block; padding: 1em; overflow-x: auto; }
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface-2: #1c2230;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --green: #3fb950;
+      --red: #f85149;
+      --amber: #d29922;
+      --link: #58a6ff;
+      --mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", "Menlo", monospace;
+      --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+      --maxw: 760px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--link); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 1.25rem; }
+
+    code {
+      font-family: var(--mono);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 0.12em 0.4em;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+
+    pre {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.1rem;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 0.86rem;
+      line-height: 1.6;
+      margin: 0;
+    }
+    pre code { background: none; border: none; padding: 0; }
+
+    /* header */
+    header {
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(13, 17, 23, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 10;
+    }
+    header .wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+    .brand { display: flex; align-items: center; gap: 0.55rem; }
+    .brand svg { display: block; }
+    .brand .name { font-family: var(--mono); font-weight: 600; font-size: 1.05rem; }
+    .navlinks { display: flex; gap: 1.25rem; font-size: 0.92rem; }
+    .navlinks a { color: var(--muted); }
+    .navlinks a:hover { color: var(--text); text-decoration: none; }
+
+    /* hero */
+    .hero { text-align: center; padding: 4.5rem 0 3rem; }
+    .hero .mark { margin: 0 auto 1.5rem; display: block; }
+    .hero h1 {
+      font-family: var(--mono);
+      font-size: clamp(2.4rem, 7vw, 3.4rem);
+      margin: 0;
+      letter-spacing: -0.01em;
+    }
+    .cursor {
+      display: inline-block;
+      width: 0.56ch;
+      height: 1em;
+      vertical-align: -0.12em;
+      margin-left: 0.06em;
+      animation: blink-color 3s steps(1) infinite;
+    }
+    @keyframes blink-color {
+      0%, 24%  { background: var(--green); opacity: 1; }
+      25%, 49% { opacity: 0; }
+      50%, 74% { background: var(--amber); opacity: 1; }
+      75%, 99% { opacity: 0; }
+      100%     { background: var(--green); opacity: 1; }
+    }
+
+    .tagline { font-size: 1.25rem; margin: 1.1rem auto 0.4rem; }
+    .subline { color: var(--muted); margin: 0.4rem auto 0; }
+    .subline .ko { color: var(--red); }
+    .subline .ok { color: var(--green); }
+
+    .cta { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; margin: 2rem 0 1.5rem; }
+    .btn {
+      font-family: var(--mono);
+      font-size: 0.92rem;
+      padding: 0.6rem 1.15rem;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .btn:hover { text-decoration: none; }
+    .btn-primary { background: var(--green); color: #06210d; border-color: var(--green); font-weight: 600; }
+    .btn-primary:hover { background: #4cc961; }
+    .btn-ghost { background: var(--surface); color: var(--text); }
+    .btn-ghost:hover { background: var(--surface-2); }
+
+    .badges { display: flex; gap: 0.4rem; justify-content: center; flex-wrap: wrap; }
+    .badges img { height: 20px; }
+
+    /* terminal proof */
+    .terminal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+      text-align: left;
+    }
+    .terminal .bar {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.6rem 0.85rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-2);
+    }
+    .terminal .bar i { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+    .terminal .bar .t { margin-left: 0.5rem; color: var(--muted); font-family: var(--mono); font-size: 0.78rem; }
+    .terminal pre { border: none; border-radius: 0; background: none; padding: 1.1rem 1.2rem; }
+
+    .prompt { color: var(--muted); }
+    .cmd { color: var(--text); }
+    .ok { color: var(--green); }
+    .ko { color: var(--red); }
+    .warn { color: var(--amber); }
+    .dim { color: var(--muted); }
+
+    /* sections */
+    section { padding: 3.5rem 0; border-top: 1px solid var(--border); }
+    section h2 {
+      font-family: var(--mono);
+      font-size: 1.5rem;
+      margin: 0 0 0.4rem;
+    }
+    section h2 .hash { color: var(--green); }
+    .lead { color: var(--muted); margin: 0 0 2rem; }
+
+    .steps { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+    .step {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 1.1rem 1.2rem;
+    }
+    .step .n { font-family: var(--mono); color: var(--green); font-size: 0.82rem; }
+    .step h3 { margin: 0.3rem 0 0.4rem; font-size: 1.05rem; font-family: var(--mono); }
+    .step p { margin: 0; color: var(--muted); font-size: 0.94rem; }
+
+    .why { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .why div {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 1rem 1.1rem;
+      font-size: 0.93rem;
+    }
+    .why h3 { margin: 0 0 0.35rem; font-size: 0.98rem; font-family: var(--mono); color: var(--text); }
+    .why p { margin: 0; color: var(--muted); }
+
+    .install-grid { display: grid; gap: 1.25rem; }
+    .install-grid h3 { font-family: var(--mono); font-size: 0.95rem; margin: 0 0 0.5rem; color: var(--muted); }
+
+    /* footer */
+    footer { border-top: 1px solid var(--border); padding: 2.5rem 0 3.5rem; }
+    footer .wrap { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    footer .links { display: flex; gap: 1.25rem; font-size: 0.92rem; flex-wrap: wrap; }
+    footer .links a { color: var(--muted); }
+    footer .copy { color: var(--muted); font-size: 0.85rem; font-family: var(--mono); }
+
+    @media (max-width: 560px) {
+      .steps, .why { grid-template-columns: 1fr; }
+      .navlinks { display: none; }
+    }
   </style>
 </head>
 <body>
-  <h1>outdatty</h1>
-  <p>Catch outdated artifacts via a declared dependency graph and content hashes.</p>
+  <!-- reusable graph mark: left node fresh source, right node drifted dependent, broken edge -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="mark" viewBox="0 0 32 32">
+      <circle cx="9" cy="16" r="4.5" fill="var(--green)"/>
+      <circle cx="23" cy="16" r="4.5" fill="var(--amber)"/>
+      <path d="M13.5 16h2M16.5 16h2" stroke="var(--red)" stroke-width="2.5" stroke-linecap="round"/>
+    </symbol>
+  </svg>
 
-  <h2>Install</h2>
-  <pre><code>cargo install outdatty</code></pre>
+  <header>
+    <div class="wrap">
+      <a class="brand" href="#top" aria-label="outdatty home">
+        <svg width="24" height="24"><use href="#mark"/></svg>
+        <span class="name">outdatty</span>
+      </a>
+      <nav class="navlinks">
+        <a href="#how">How it works</a>
+        <a href="#why">Why</a>
+        <a href="#install">Install</a>
+        <a href="https://github.com/mlavrinenko/outdatty">GitHub</a>
+      </nav>
+    </div>
+  </header>
 
-  <p>Or download a binary from the
-    <a href="https://github.com/mlavrinenko/outdatty/releases/latest">latest release</a>.
-  </p>
+  <main id="top">
+    <section class="hero" style="border-top:none">
+      <div class="wrap">
+        <svg class="mark" width="72" height="72"><use href="#mark"/></svg>
+        <h1>outdatty<span class="cursor"></span></h1>
+        <p class="tagline">Catch outdated artifacts before they ship.</p>
+        <p class="subline">
+          Declare a dependency graph between arbitrary files.<br />
+          CI fails when a  source changes but its dependents were not re-confirmed.<br />
+          <span class="ko">drift &rarr; exit 1</span>,
+          <span class="ok">in sync &rarr; exit 0</span>.
+        </p>
+        <div class="cta">
+          <a class="btn btn-primary" href="#install">Install</a>
+          <a class="btn btn-ghost" href="https://github.com/mlavrinenko/outdatty">GitHub &rarr;</a>
+        </div>
+        <div class="badges">
+          <a href="https://crates.io/crates/outdatty"><img alt="crates.io" src="https://img.shields.io/crates/v/outdatty.svg?color=3fb950&labelColor=161b22"></a>
+          <a href="https://github.com/mlavrinenko/outdatty/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/mlavrinenko/outdatty/actions/workflows/ci.yml/badge.svg"></a>
+          <a href="https://github.com/mlavrinenko/outdatty/blob/main/LICENSE-MIT"><img alt="MIT" src="https://img.shields.io/crates/l/outdatty.svg?color=8b949e&labelColor=161b22"></a>
+        </div>
+      </div>
+    </section>
+
+    <section style="border-top:none; padding-top:0">
+      <div class="wrap">
+        <div class="terminal">
+          <div class="bar">
+            <i style="background:#f85149"></i><i style="background:#d29922"></i><i style="background:#3fb950"></i>
+            <span class="t">outdatty check</span>
+          </div>
+<pre><span class="prompt">$</span> <span class="cmd">outdatty check</span>
+<span class="ko">&#10007; feature</span>  <span class="dim">source changed, dependents not confirmed</span>
+    <span class="dim">source</span>      src/feature.rs
+    <span class="dim">dependent</span>   docs/feature.mdx
+    <span class="dim">dependent</span>   tests/feature.rs
+<span class="ko">drift: 1 of 3 groups out of date</span>  <span class="dim">(exit 1)</span>
+
+<span class="prompt">$</span> <span class="cmd">outdatty update --group feature</span>   <span class="dim"># review, then re-confirm</span>
+<span class="ok">&#10003; feature</span>  <span class="dim">3 files re-locked</span>
+
+<span class="prompt">$</span> <span class="cmd">outdatty check</span>
+<span class="ok">&#10003; all 3 groups in sync</span>  <span class="dim">(exit 0)</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <section id="how">
+      <div class="wrap">
+        <h2><span class="hash">#</span> How it works</h2>
+        <p class="lead">
+          No commands run, no build graph.<br />
+          One question: did a source change without its dependents being confirmed?
+        </p>
+        <div class="steps">
+          <div class="step">
+            <span class="n">01</span>
+            <h3>Declare</h3>
+            <p>A YAML manifest groups <code>source</code> files with the <code>dependents</code> that must stay in sync with them.</p>
+          </div>
+          <div class="step">
+            <span class="n">02</span>
+            <h3>Confirm</h3>
+            <p><code>outdatty update</code> records a blake3 hash of every file into a committed <code>outdatty.lock</code>.</p>
+          </div>
+          <div class="step">
+            <span class="n">03</span>
+            <h3>Check</h3>
+            <p><code>outdatty check</code> recomputes hashes in CI. A changed source with stale dependents fails with exit 1.</p>
+          </div>
+          <div class="step">
+            <span class="n">04</span>
+            <h3>Re-confirm</h3>
+            <p>Update the dependents, run <code>outdatty update</code> to re-lock, and the group is green again.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="manifest">
+      <div class="wrap">
+        <h2><span class="hash">#</span> The manifest</h2>
+        <p class="lead">
+          Language- and format-agnostic: code, docs, <code>.docx</code>, configs &mdash; anything with bytes.<br />
+          Globs are gitignore-aware by default.
+        </p>
+<pre><span class="dim"># yaml-language-server: $schema=https://raw.githubusercontent.com/mlavrinenko/outdatty/main/schema/outdatty.schema.json</span>
+groups:
+  - name: feature
+    source: [src/feature.rs]          <span class="dim"># literal paths or globs like src/**/*.rs</span>
+    dependents: [docs/feature.mdx, tests/feature.rs]
+    <span class="dim"># bidirectional: true             # also flag when a dependent changes</span></pre>
+      </div>
+    </section>
+
+    <section id="why">
+      <div class="wrap">
+        <h2><span class="hash">#</span> Why not&hellip;</h2>
+        <p class="lead">outdatty sits between two categories and does neither's job.</p>
+        <div class="why">
+          <div>
+            <h3>Build systems</h3>
+            <p>Task, Bazel, Buck2 run commands to produce output. outdatty runs nothing &mdash; it only flags drift.</p>
+          </div>
+          <div>
+            <h3>Integrity monitors</h3>
+            <p>AIDE hashes files in isolation. outdatty models dependencies <em>between</em> files.</p>
+          </div>
+          <div>
+            <h3>Doc linters</h3>
+            <p>Tied to one language or format. outdatty couples any bytes to any other bytes.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="install">
+      <div class="wrap">
+        <h2><span class="hash">#</span> Install</h2>
+        <div class="install-grid">
+          <div>
+            <h3>From crates.io</h3>
+<pre><span class="prompt">$</span> <span class="cmd">cargo install outdatty</span></pre>
+          </div>
+          <div>
+            <h3>Pre-built binary</h3>
+            <p class="lead" style="margin:0">
+              Download from the
+              <a href="https://github.com/mlavrinenko/outdatty/releases/latest">latest release</a>.
+            </p>
+          </div>
+          <div>
+            <h3>Gate CI</h3>
+<pre><span class="dim"># .github/workflows/outdatty.yml</span>
+- run: outdatty check --format quiet</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
 
   <footer>
-    <p><a href="https://github.com/mlavrinenko/outdatty">GitHub</a></p>
+    <div class="wrap">
+      <a class="brand" href="#top" aria-label="outdatty">
+        <svg width="22" height="22"><use href="#mark"/></svg>
+        <span class="name">outdatty</span>
+      </a>
+      <nav class="links">
+        <a href="https://github.com/mlavrinenko/outdatty">GitHub</a>
+        <a href="https://crates.io/crates/outdatty">crates.io</a>
+        <a href="https://github.com/mlavrinenko/outdatty/blob/main/schema/outdatty.schema.json">Schema</a>
+        <a href="https://github.com/mlavrinenko/outdatty/blob/main/LICENSE-MIT">MIT License</a>
+      </nav>
+      <span class="copy">blake3 &middot; no telemetry</span>
+    </div>
   </footer>
 </body>
 </html>

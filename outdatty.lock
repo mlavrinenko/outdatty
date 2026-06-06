@@ -7,7 +7,7 @@ groups:
       src/commands.rs: ea14cf7095165545e347e4617aca126fb91e3a3ac416df765efbf19a53886525
     dependents:
       README.md: ee263efc5412589b003086dfaac4ec93d2e9e2f7975226674af048f6268b1fcd
-      www/index.html: 1f1ad8635d6be5ac5467f41f5d26fdb4fbc65153a04ac6b00221e0e09ff9dfca
+      www/index.html: 30a5c07d0294fb6a7965828a449605b4a0ba5b5c1d8fd7bfefb87eab45ee9dfa
   release-notes:
     source:
       Cargo.toml: d537b21f4ebda9e9476db731f3c294b3c954147336a0e20b3e3a93373ce8894f

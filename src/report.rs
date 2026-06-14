@@ -128,10 +128,6 @@ fn push_group_line(out: &mut String, group: &GroupReport, styler: Styler) {
         out.push_str(&styler.dim(&format!("    source changed:    {path}")));
         out.push('\n');
     }
-    for path in &group.changed_dependents {
-        out.push_str(&styler.dim(&format!("    dependent changed: {path}")));
-        out.push('\n');
-    }
     if group.status.is_failure() {
         out.push_str(&styler.dim(&format!(
             "    confirm with:      outdatty update --group {}",
@@ -144,7 +140,6 @@ fn push_group_line(out: &mut String, group: &GroupReport, styler: Styler) {
 fn status_label(styler: Styler, status: Status) -> String {
     match status {
         Status::Ok => styler.green("[  ok   ]"),
-        Status::DependentDrift => styler.yellow("[ drift ]"),
         Status::Stale => styler.red("[ stale ]"),
         Status::New => styler.red("[  new  ]"),
     }
@@ -239,6 +234,27 @@ mod tests {
         assert!(
             colored.contains("source changed:    code.rs"),
             "payload text survives styling"
+        );
+    }
+
+    #[test]
+    fn plain_omits_dependent_only_changes() {
+        let report = Report {
+            groups: vec![GroupReport {
+                id: "directed".to_owned(),
+                status: Status::Ok,
+                changed_sources: Vec::new(),
+                changed_dependents: vec!["doc.md".to_owned()],
+            }],
+        };
+        let text = render_report(&report, Format::Plain, false).expect("render");
+        assert!(
+            !text.contains("dependent changed"),
+            "dependent-only edits are not surfaced in plain output"
+        );
+        assert!(
+            text.contains("[  ok   ]"),
+            "directed dependent edit reads as ok"
         );
     }
 

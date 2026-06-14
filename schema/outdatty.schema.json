@@ -25,6 +25,7 @@
       "type": "object",
       "required": [
         "dependents",
+        "name",
         "source"
       ],
       "properties": {
@@ -41,11 +42,8 @@
           }
         },
         "name": {
-          "description": "Optional stable identifier used in reports and for `--group` targeting.",
-          "type": [
-            "string",
-            "null"
-          ]
+          "description": "Stable identifier used in reports and for `--group` targeting. Required and unique: lockfile entries are keyed by it, so it must not depend on a group's position in the manifest.",
+          "type": "string"
         },
         "source": {
           "description": "Source artifacts. A change to any source marks the group out of date. Entries may be literal paths or glob patterns such as `src/**/*.rs`.",

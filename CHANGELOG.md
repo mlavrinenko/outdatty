@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-14
+
+### Changed
+
+- Group `name` is now required and must be non-empty and unique. Lockfile
+  entries are keyed by it, so the positional fallback id (`group[N]`) is gone:
+  reordering or inserting groups can no longer silently remap a confirmation.
+  A missing or blank name is an operational error (exit 2).
+- Dependent-only changes in a directed group are no longer surfaced in plain
+  `check`/`status` output; they were never failures. The `dependent_drift`
+  status is removed (a directed dependent edit now reads as `ok`); `--format
+  json` still lists the differing paths under `changed_dependents`.
+
 ## [0.1.0] - 2026-06-06
 
 ### Added

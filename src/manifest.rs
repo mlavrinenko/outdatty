@@ -46,9 +46,10 @@ impl Default for Manifest {
 #[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Group {
-    /// Optional stable identifier used in reports and for `--group` targeting.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
+    /// Stable identifier used in reports and for `--group` targeting. Required
+    /// and unique: lockfile entries are keyed by it, so it must not depend on a
+    /// group's position in the manifest.
+    pub name: String,
 
     /// Source artifacts. A change to any source marks the group out of date.
     /// Entries may be literal paths or glob patterns such as `src/**/*.rs`.
@@ -61,18 +62,6 @@ pub struct Group {
     /// modelling a bidirectional coupling.
     #[serde(default)]
     pub bidirectional: bool,
-}
-
-impl Group {
-    /// Returns the stable identifier for this group: its `name` if set,
-    /// otherwise a positional identifier derived from `index`.
-    #[must_use]
-    pub fn id(&self, index: usize) -> String {
-        match &self.name {
-            Some(name) => name.clone(),
-            None => format!("group[{index}]"),
-        }
-    }
 }
 
 impl Manifest {
@@ -96,25 +85,26 @@ impl Manifest {
         Ok(manifest)
     }
 
-    /// Checks structural invariants the schema cannot express: group names must
-    /// be unique and every group must declare at least one source.
+    /// Checks structural invariants the schema cannot express: every group must
+    /// carry a non-empty, unique `name` and declare at least one source.
     ///
     /// # Errors
     ///
-    /// Returns [`Error::DuplicateGroup`] or [`Error::EmptyGroupSource`].
+    /// Returns [`Error::EmptyGroupName`], [`Error::DuplicateGroup`], or
+    /// [`Error::EmptyGroupSource`].
     pub fn validate(&self) -> Result<()> {
         let mut seen: Vec<&str> = Vec::new();
         for (index, group) in self.groups.iter().enumerate() {
-            let id = group.id(index);
+            if group.name.trim().is_empty() {
+                return Err(Error::EmptyGroupName(index + 1));
+            }
             if group.source.is_empty() {
-                return Err(Error::EmptyGroupSource(id));
+                return Err(Error::EmptyGroupSource(group.name.clone()));
             }
-            if let Some(name) = &group.name {
-                if seen.contains(&name.as_str()) {
-                    return Err(Error::DuplicateGroup(name.clone()));
-                }
-                seen.push(name);
+            if seen.contains(&group.name.as_str()) {
+                return Err(Error::DuplicateGroup(group.name.clone()));
             }
+            seen.push(group.name.as_str());
         }
         Ok(())
     }
@@ -149,29 +139,40 @@ mod tests {
     use super::{Group, Manifest, schema_json};
 
     #[test]
-    fn group_id_prefers_name() {
-        let named = Group {
-            name: Some("docs".to_owned()),
-            ..Group::default()
-        };
-        assert_eq!(named.id(3), "docs");
-        let anon = Group::default();
-        assert_eq!(anon.id(2), "group[2]");
-    }
-
-    #[test]
     fn parses_a_minimal_manifest() {
-        let text = "groups:\n  - source: [a.rs]\n    dependents: [a.md]\n";
+        let text = "groups:\n  - name: g\n    source: [a.rs]\n    dependents: [a.md]\n";
         let manifest: Manifest = serde_yaml_ng::from_str(text).expect("parse");
         assert_eq!(manifest.groups.len(), 1);
         let group = manifest.groups.first().expect("group");
+        assert_eq!(group.name, "g");
         assert_eq!(group.source, vec!["a.rs".to_owned()]);
         assert!(!group.bidirectional);
     }
 
     #[test]
-    fn gitignore_defaults_to_true() {
+    fn name_is_required() {
         let text = "groups:\n  - source: [a.rs]\n    dependents: [a.md]\n";
+        let parsed: Result<Manifest, _> = serde_yaml_ng::from_str(text);
+        assert!(parsed.is_err(), "a group without a name is rejected");
+    }
+
+    #[test]
+    fn validate_rejects_blank_name() {
+        let manifest = Manifest {
+            groups: vec![Group {
+                name: "   ".to_owned(),
+                source: vec!["a".to_owned()],
+                dependents: vec!["b".to_owned()],
+                ..Group::default()
+            }],
+            ..Manifest::default()
+        };
+        assert!(manifest.validate().is_err(), "blank name rejected");
+    }
+
+    #[test]
+    fn gitignore_defaults_to_true() {
+        let text = "groups:\n  - name: g\n    source: [a.rs]\n    dependents: [a.md]\n";
         let manifest: Manifest = serde_yaml_ng::from_str(text).expect("parse");
         assert!(manifest.gitignore, "gitignore defaults on");
         assert!(Manifest::default().gitignore);
@@ -182,12 +183,12 @@ mod tests {
         let dup = Manifest {
             groups: vec![
                 Group {
-                    name: Some("g".to_owned()),
+                    name: "g".to_owned(),
                     source: vec!["a".to_owned()],
                     ..Group::default()
                 },
                 Group {
-                    name: Some("g".to_owned()),
+                    name: "g".to_owned(),
                     source: vec!["b".to_owned()],
                     ..Group::default()
                 },
@@ -198,7 +199,7 @@ mod tests {
 
         let empty = Manifest {
             groups: vec![Group {
-                name: Some("g".to_owned()),
+                name: "g".to_owned(),
                 source: Vec::new(),
                 dependents: vec!["b".to_owned()],
                 ..Group::default()
@@ -222,7 +223,7 @@ mod tests {
 
     #[test]
     fn rejects_unknown_fields() {
-        let text = "groups:\n  - source: [a]\n    dependents: [b]\n    bogus: 1\n";
+        let text = "groups:\n  - name: g\n    source: [a]\n    dependents: [b]\n    bogus: 1\n";
         let parsed: Result<Manifest, _> = serde_yaml_ng::from_str(text);
         assert!(parsed.is_err(), "unknown fields are rejected");
     }
@@ -251,7 +252,11 @@ mod tests {
     fn loads_and_discovers_from_disk() {
         let dir = tempfile::tempdir().expect("tempdir");
         let path = dir.path().join("outdatty.yaml");
-        std::fs::write(&path, "groups:\n  - source: [a]\n    dependents: [b]\n").expect("write");
+        std::fs::write(
+            &path,
+            "groups:\n  - name: g\n    source: [a]\n    dependents: [b]\n",
+        )
+        .expect("write");
 
         let manifest = Manifest::load(&path).expect("load");
         assert_eq!(manifest.groups.len(), 1);

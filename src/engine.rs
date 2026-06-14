@@ -33,10 +33,11 @@ impl Filter {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Status {
-    /// Every artifact matches the confirmed snapshot.
+    /// Every source matches the confirmed snapshot. A directed group is also
+    /// `Ok` when only its dependents changed; that is allowed, and `check`
+    /// passes. The differing dependents are still reported in `changed_dependents`
+    /// for machine consumers.
     Ok,
-    /// Dependents changed while sources did not (allowed; informational).
-    DependentDrift,
     /// A source changed; dependents must be re-confirmed.
     Stale,
     /// The group has no confirmed snapshot yet.
@@ -85,8 +86,7 @@ pub fn ids(manifest: &Manifest) -> Vec<String> {
     manifest
         .groups
         .iter()
-        .enumerate()
-        .map(|(index, group)| group.id(index))
+        .map(|group| group.name.clone())
         .collect()
 }
 
@@ -135,8 +135,6 @@ fn diff(current: &BTreeMap<String, String>, locked: &BTreeMap<String, String>) -
 fn classify(bidirectional: bool, source_changed: bool, dependent_changed: bool) -> Status {
     if source_changed || (bidirectional && dependent_changed) {
         Status::Stale
-    } else if dependent_changed {
-        Status::DependentDrift
     } else {
         Status::Ok
     }
@@ -185,8 +183,8 @@ pub fn evaluate(
     filter: &Filter,
 ) -> Result<Report> {
     let mut groups = Vec::new();
-    for (index, group) in manifest.groups.iter().enumerate() {
-        let id = group.id(index);
+    for group in &manifest.groups {
+        let id = group.name.clone();
         if !filter.selects(&id) {
             continue;
         }
@@ -254,8 +252,8 @@ pub fn build(
     next.algorithm = hashing::ALGORITHM.to_owned();
     let mut entries = Vec::new();
     let mut keep = std::collections::BTreeSet::new();
-    for (index, group) in manifest.groups.iter().enumerate() {
-        let id = group.id(index);
+    for group in &manifest.groups {
+        let id = group.name.clone();
         keep.insert(id.clone());
         if !filter.selects(&id) {
             continue;
@@ -301,7 +299,7 @@ mod tests {
 
     fn pair_group() -> Group {
         Group {
-            name: Some("pair".to_owned()),
+            name: "pair".to_owned(),
             source: vec!["code.rs".to_owned()],
             dependents: vec!["doc.md".to_owned()],
             bidirectional: false,
@@ -323,22 +321,27 @@ mod tests {
 
     #[test]
     fn classify_covers_the_truth_table() {
+        // Directed dependent-only change is allowed; it stays Ok.
         assert_eq!(classify(false, false, false), Status::Ok);
-        assert_eq!(classify(false, false, true), Status::DependentDrift);
+        assert_eq!(classify(false, false, true), Status::Ok);
         assert_eq!(classify(false, true, false), Status::Stale);
         assert_eq!(classify(true, false, true), Status::Stale);
     }
 
     #[test]
-    fn ids_uses_names_then_positions() {
+    fn ids_returns_group_names_in_order() {
         let manifest = Manifest {
-            groups: vec![pair_group(), Group::default()],
+            groups: vec![
+                pair_group(),
+                Group {
+                    name: "second".to_owned(),
+                    source: vec!["x".to_owned()],
+                    ..Group::default()
+                },
+            ],
             ..Manifest::default()
         };
-        assert_eq!(
-            ids(&manifest),
-            vec!["pair".to_owned(), "group[1]".to_owned()]
-        );
+        assert_eq!(ids(&manifest), vec!["pair".to_owned(), "second".to_owned()]);
     }
 
     #[test]
@@ -395,11 +398,17 @@ mod tests {
             build(&manifest, &Lockfile::default(), dir.path(), &Filter::All).expect("build");
         write(dir.path(), "doc.md", "edited");
         let report = evaluate(&manifest, &lock, dir.path(), &Filter::All).expect("evaluate");
+        let group = report.groups.first().expect("group");
+        assert_eq!(group.status, Status::Ok, "directed dependent edit stays ok");
         assert_eq!(
-            report.groups.first().expect("group").status,
-            Status::DependentDrift
+            group.changed_dependents,
+            vec!["doc.md".to_owned()],
+            "the differing dependent is still recorded for machine consumers"
         );
-        assert!(!report.has_failure(), "dependent drift does not fail check");
+        assert!(
+            !report.has_failure(),
+            "dependent-only change does not fail check"
+        );
     }
 
     #[test]

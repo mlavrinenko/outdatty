@@ -228,7 +228,7 @@ mod tests {
     fn make_filter_validates_group_names() {
         let manifest = Manifest {
             groups: vec![Group {
-                name: Some("known".to_owned()),
+                name: "known".to_owned(),
                 ..Group::default()
             }],
             ..Manifest::default()

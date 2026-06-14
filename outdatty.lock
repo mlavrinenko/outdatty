@@ -5,19 +5,19 @@ groups:
     source:
       flake.nix: 2db3571b76e3152d974b6e0ed7dba928436f4df5c89016f3c6972372d3a2373a
       src/cli.rs: fb637c7aec8d3d939b77b55b913d9a0df678309ae04fd84572814c147a3f5ecc
-      src/commands.rs: 01dde2c77ab9e0e4007724cb0cd3e059806e683f9d9d296cd095863a8676ce5d
-      src/report.rs: 548847915176949eadd37536ae55155156325971f371231d91b46f650552e8d6
+      src/commands.rs: aab053a8c40d9ce53cc785e0d9a17538307c88ff08e3d3fec992b5f8afcdfd50
+      src/report.rs: 197e8e68c3ef52ccbd1cbd2cdf3d24f9655b5b770b2c765a9d401aec7cd50fce
     dependents:
-      README.md: fe17262c39a0f1ec3ca3823145d470cb877fb6f9306a77860818b303bd5e3fdf
-      www/index.html: 34fe74a88a5d3cc64100566acffa1a4213a53d42f777ea41a0aa950547d92d2c
+      README.md: 1bcf802266602885392dd26e89e70f86ba147167572ab9472884be3a6eb85f2e
+      www/index.html: 377d10c64a0967261a8c84ecd8a55c2f373c344cb7382b33d4efb48254489522
   release-notes:
     source:
-      Cargo.toml: d537b21f4ebda9e9476db731f3c294b3c954147336a0e20b3e3a93373ce8894f
+      Cargo.toml: 26fbc55cc566211861f501d9bf379c7abd364d985c17b193f93e7f933f46ce75
     dependents:
-      CHANGELOG.md: 201546069f49a46ef72c73cf465675c67dab74e2d13b43183ce0438d1f46dd49
+      CHANGELOG.md: 00bc910492503b8c2fd6fbc26976c2a0826e93815f14d215fb5c5708ec35a0c5
   schema:
     source:
-      src/manifest.rs: c5d5a9e316a25a5a9e62956d16ad1c1545e24e9ca50e1d35afec0375d1a1bcd0
+      src/manifest.rs: 1ee4747c7896a472c5cad557814e6f796275c5ae9488caffef1e170aa9b1adea
     dependents:
       examples/outdatty.yaml: e52950ed9108c5473041b21972f6dc4112d328efae31338f173cbf5ef6f9cdf9
-      schema/outdatty.schema.json: c34a2071f08ec08fb65ca57ffb84b548d2ca484111e9e16da0b13ec2e7f92502
+      schema/outdatty.schema.json: 4b950ef3056727bf10286919aabdadf68ca6cee127c663ae6046050853ad7f96

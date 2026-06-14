@@ -29,6 +29,10 @@ pub enum Error {
         source: Box<serde_yaml_ng::Error>,
     },
 
+    /// A group is missing a `name` or declares a blank one.
+    #[error("group #{0} has an empty `name`; every group must declare a unique name")]
+    EmptyGroupName(usize),
+
     /// Two groups share the same identifier.
     #[error("duplicate group name: {0} (group names must be unique)")]
     DuplicateGroup(String),
@@ -111,6 +115,8 @@ mod tests {
         assert_eq!(unknown.to_string(), "no such group: ghost");
         let dup = Error::DuplicateGroup("pair".to_owned());
         assert!(dup.to_string().contains("duplicate group name"));
+        let unnamed = Error::EmptyGroupName(2);
+        assert!(unnamed.to_string().contains("empty `name`"));
         let empty = Error::EmptyGroupSource("pair".to_owned());
         assert!(empty.to_string().contains("empty `source`"));
     }

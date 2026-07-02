@@ -129,6 +129,10 @@ fn push_group_line(out: &mut String, group: &GroupReport, styler: Styler) {
         out.push('\n');
     }
     if group.status.is_failure() {
+        for path in &group.dependents {
+            out.push_str(&styler.dim(&format!("    review dependent:  {path}")));
+            out.push('\n');
+        }
         out.push_str(&styler.dim(&format!(
             "    confirm with:      outdatty update --group {}",
             group.id
@@ -197,12 +201,14 @@ mod tests {
                     status: Status::Ok,
                     changed_sources: Vec::new(),
                     changed_dependents: Vec::new(),
+                    dependents: vec!["doc.md".to_owned()],
                 },
                 GroupReport {
                     id: "stale-one".to_owned(),
                     status: Status::Stale,
                     changed_sources: vec!["code.rs".to_owned()],
                     changed_dependents: Vec::new(),
+                    dependents: vec!["doc.md".to_owned()],
                 },
             ],
         }
@@ -221,6 +227,28 @@ mod tests {
         assert!(
             !text.contains("update --group ok-one"),
             "healthy group gets no suggestion"
+        );
+        assert!(
+            text.contains("review dependent:  doc.md"),
+            "failing group lists its declared dependents as review targets"
+        );
+    }
+
+    #[test]
+    fn plain_omits_review_dependent_for_ok_groups() {
+        let report = Report {
+            groups: vec![GroupReport {
+                id: "ok-one".to_owned(),
+                status: Status::Ok,
+                changed_sources: Vec::new(),
+                changed_dependents: Vec::new(),
+                dependents: vec!["doc.md".to_owned()],
+            }],
+        };
+        let text = render_report(&report, Format::Plain, false).expect("render");
+        assert!(
+            !text.contains("review dependent:"),
+            "ok groups stay terse; no review targets are listed"
         );
     }
 
@@ -245,6 +273,7 @@ mod tests {
                 status: Status::Ok,
                 changed_sources: Vec::new(),
                 changed_dependents: vec!["doc.md".to_owned()],
+                dependents: vec!["doc.md".to_owned()],
             }],
         };
         let text = render_report(&report, Format::Plain, false).expect("render");
@@ -269,6 +298,10 @@ mod tests {
         let text = render_report(&sample_report(), Format::Json, false).expect("render");
         assert!(text.contains("\"status\": \"stale\""));
         assert!(text.contains("\"changed_sources\""));
+        assert!(
+            text.contains("\"dependents\""),
+            "json carries review targets"
+        );
         assert!(text.contains("\"failed\": true"), "carries failure signal");
         assert!(text.contains("\"out_of_date\": 1"));
         assert!(text.ends_with("\n"), "json ends with newline");

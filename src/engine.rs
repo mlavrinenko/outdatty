@@ -63,6 +63,9 @@ pub struct GroupReport {
     pub changed_sources: Vec<String>,
     /// Dependent paths whose content differs from the snapshot.
     pub changed_dependents: Vec<String>,
+    /// The group's full declared dependents; review targets for a human when
+    /// the group fails.
+    pub dependents: Vec<String>,
 }
 
 /// Aggregate evaluation result.
@@ -154,6 +157,7 @@ fn evaluate_group(
             status: Status::New,
             changed_sources: Vec::new(),
             changed_dependents: Vec::new(),
+            dependents: group.dependents.clone(),
         });
     };
     let changed_sources = diff(&current.source, &locked.source);
@@ -168,6 +172,7 @@ fn evaluate_group(
         status,
         changed_sources,
         changed_dependents,
+        dependents: group.dependents.clone(),
     })
 }
 
@@ -386,6 +391,11 @@ mod tests {
         let group = report.groups.first().expect("group");
         assert_eq!(group.status, Status::Stale);
         assert_eq!(group.changed_sources, vec!["code.rs".to_owned()]);
+        assert_eq!(
+            group.dependents,
+            vec!["doc.md".to_owned()],
+            "the group's declared dependents are review targets regardless of status"
+        );
     }
 
     #[test]

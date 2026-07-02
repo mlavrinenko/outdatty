@@ -6,10 +6,10 @@ groups:
       flake.nix: 2db3571b76e3152d974b6e0ed7dba928436f4df5c89016f3c6972372d3a2373a
       src/cli.rs: fb637c7aec8d3d939b77b55b913d9a0df678309ae04fd84572814c147a3f5ecc
       src/commands.rs: aab053a8c40d9ce53cc785e0d9a17538307c88ff08e3d3fec992b5f8afcdfd50
-      src/report.rs: 197e8e68c3ef52ccbd1cbd2cdf3d24f9655b5b770b2c765a9d401aec7cd50fce
+      src/report.rs: ed11d55a56e428c2c5fc5e7d1d56d396a8b55aabc2b9763f722a5d47e8eb9763
     dependents:
       README.md: 1bcf802266602885392dd26e89e70f86ba147167572ab9472884be3a6eb85f2e
-      www/index.html: 377d10c64a0967261a8c84ecd8a55c2f373c344cb7382b33d4efb48254489522
+      www/index.html: 747046e525c1ac09ac76dc1935e0dabdedb3928fb7e936ef0b5a5f3929264d4c
   release-notes:
     source:
       Cargo.toml: 26fbc55cc566211861f501d9bf379c7abd364d985c17b193f93e7f933f46ce75

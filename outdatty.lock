@@ -9,6 +9,7 @@ groups:
       src/report.rs: cf09b00aa66dbf3ea5367d0bf858a94a0abe5f1127da4d16ab7fe85546508b03
     dependents:
       README.md: 1810c1b870013ee2d3fe116bb2d4158ed57e62299e21d965b4e5a69e4c1b351a
+      skills/outdatty/SKILL.md: e0e39ff24ddbfb7da88d321b0932c7b909c69b728f6cce7aecea96d1bf0490a5
       www/index.html: 34e7730dcf01bfc143409911cbaebfa496f78cacca2253b701e93d09d53c61d9
   release-notes:
     source:

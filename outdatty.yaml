@@ -13,8 +13,8 @@ groups:
       - examples/outdatty.yaml
 
   # The CLI surface (subcommands, flags, exit codes), the rendered output shown
-  # in the docs, and the install methods are documented by hand; editing any of
-  # them flags the docs as needing review.
+  # in the docs, the install methods, and the usage skill are documented by
+  # hand; editing any of them flags the docs as needing review.
   - name: cli-docs
     source:
       - src/cli.rs
@@ -24,6 +24,7 @@ groups:
     dependents:
       - README.md
       - www/index.html
+      - skills/outdatty/SKILL.md
 
   # A package change should be reflected in the changelog.
   - name: release-notes

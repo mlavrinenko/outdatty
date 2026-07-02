@@ -56,6 +56,8 @@ pub struct Group {
     pub source: Vec<String>,
 
     /// Dependent artifacts that must be re-confirmed when a source changes.
+    /// Defaults to empty for a source-only group with nothing to review.
+    #[serde(default)]
     pub dependents: Vec<String>,
 
     /// When true, a change to any dependent also marks the group out of date,
@@ -168,6 +170,14 @@ mod tests {
             ..Manifest::default()
         };
         assert!(manifest.validate().is_err(), "blank name rejected");
+    }
+
+    #[test]
+    fn dependents_defaults_to_empty() {
+        let text = "groups:\n  - name: g\n    source: [a.rs]\n";
+        let manifest: Manifest = serde_yaml_ng::from_str(text).expect("parse");
+        let group = manifest.groups.first().expect("group");
+        assert!(group.dependents.is_empty(), "dependents defaults to empty");
     }
 
     #[test]

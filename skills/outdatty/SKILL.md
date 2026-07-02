@@ -69,9 +69,9 @@ groups:
 gitignore: true               # default: glob expansion skips git-ignored paths
 ```
 
-Required keys: `name` and a non-empty `source`. `dependents` must also be
-present (use `[]` for a group with none); `bidirectional` and `gitignore` are
-optional. Gitignore filtering applies only to glob matches — an explicitly
+Required keys: `name` and a non-empty `source`. `dependents` defaults to empty
+(a source-only group has nothing to review); `bidirectional` and `gitignore`
+are optional. Gitignore filtering applies only to glob matches — an explicitly
 listed path is always included, even if git-ignored.
 
 Directed (default): editing a dependent alone is fine — only source changes

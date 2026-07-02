@@ -24,7 +24,6 @@
       "description": "A single dependency group.",
       "type": "object",
       "required": [
-        "dependents",
         "name",
         "source"
       ],
@@ -35,7 +34,8 @@
           "type": "boolean"
         },
         "dependents": {
-          "description": "Dependent artifacts that must be re-confirmed when a source changes.",
+          "description": "Dependent artifacts that must be re-confirmed when a source changes. Defaults to empty for a source-only group with nothing to review.",
+          "default": [],
           "type": "array",
           "items": {
             "type": "string"

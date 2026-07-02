@@ -4,7 +4,7 @@
   title: "make group dependents optional (default empty)",
   priority: 2,
   difficulty: 2,
-  status: proposed(2026, 7, 2),
+  status: done(2026, 7, 2)[commit fix(manifest): default dependents to \[\]; schema regenerated, SKILL.md corrected],
 )
 
 = Problem

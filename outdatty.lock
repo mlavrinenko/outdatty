@@ -18,7 +18,7 @@ groups:
       CHANGELOG.md: 00bc910492503b8c2fd6fbc26976c2a0826e93815f14d215fb5c5708ec35a0c5
   schema:
     source:
-      src/manifest.rs: 1ee4747c7896a472c5cad557814e6f796275c5ae9488caffef1e170aa9b1adea
+      src/manifest.rs: d0194cd647debd38e8e8a9e34f714f761b37f6ea8efac85ca9bddb128da6cf20
     dependents:
       examples/outdatty.yaml: e52950ed9108c5473041b21972f6dc4112d328efae31338f173cbf5ef6f9cdf9
-      schema/outdatty.schema.json: 4b950ef3056727bf10286919aabdadf68ca6cee127c663ae6046050853ad7f96
+      schema/outdatty.schema.json: b34c5ff0be79b6d8033f94326cee6e15ed64c9998fe4eaa094c8044d0df684c6

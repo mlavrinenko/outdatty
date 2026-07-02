@@ -4,7 +4,7 @@
   title: "report declared dependents in plain and json",
   priority: 8,
   difficulty: 4,
-  status: accepted(2026, 7, 2),
+  status: done(2026, 7, 2)[commit 3798aad; www synced, selfcheck green],
 )
 
 = Context

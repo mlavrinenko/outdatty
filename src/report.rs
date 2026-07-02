@@ -20,6 +20,10 @@ pub enum Format {
     Json,
     /// No output; rely on the exit code.
     Quiet,
+    /// Newline-delimited changed source paths, for piping into a diff tool.
+    Paths,
+    /// NUL-delimited changed source paths, safe for paths with spaces or newlines.
+    Paths0,
 }
 
 /// Machine-readable view of an evaluation report, carrying an explicit failure
@@ -82,7 +86,30 @@ pub fn render_report(report: &Report, format: Format, color: bool) -> Result<Str
         Format::Quiet => Ok(String::new()),
         Format::Json => Ok(to_json(&ReportView::new(report))?),
         Format::Plain => Ok(render_report_plain(report, Styler::new(color))),
+        Format::Paths => Ok(render_paths(report, '\n')),
+        Format::Paths0 => Ok(render_paths(report, '\0')),
     }
+}
+
+/// Renders the deduped, sorted set of changed source paths across every
+/// group, each followed by `delimiter` (including after the last path).
+/// Never colored and carries no status labels or summary line, so it pipes
+/// directly into an external diff tool.
+fn render_paths(report: &Report, delimiter: char) -> String {
+    let mut paths: Vec<&str> = report
+        .groups
+        .iter()
+        .flat_map(|group| group.changed_sources.iter())
+        .map(String::as_str)
+        .collect();
+    paths.sort_unstable();
+    paths.dedup();
+    let mut out = String::new();
+    for path in paths {
+        out.push_str(path);
+        out.push(delimiter);
+    }
+    out
 }
 
 /// Serializes `value` as pretty JSON with a trailing newline.
@@ -158,9 +185,11 @@ fn status_label(styler: Styler, status: Status) -> String {
 /// Returns [`crate::error::Error::Json`] if JSON serialization fails.
 pub fn render_update(report: &UpdateReport, format: Format, color: bool) -> Result<String> {
     match format {
-        Format::Quiet => Ok(String::new()),
         Format::Json => to_json(&UpdateView::new(report)),
         Format::Plain => Ok(render_update_plain(report, Styler::new(color))),
+        // Paths/Paths0 surface changed *sources* from a Report; UpdateReport
+        // carries no such list, so there is nothing to emit (same as Quiet).
+        Format::Quiet | Format::Paths | Format::Paths0 => Ok(String::new()),
     }
 }
 
@@ -344,6 +373,97 @@ mod tests {
         assert!(json.contains("\"total\": 1"), "update json carries total");
         assert!(
             render_update(&report, Format::Quiet, false)
+                .expect("render")
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn paths_lists_changed_sources_sorted_and_deduped() {
+        let report = Report {
+            groups: vec![
+                GroupReport {
+                    id: "b-group".to_owned(),
+                    status: Status::Stale,
+                    changed_sources: vec!["src/z.rs".to_owned(), "src/a.rs".to_owned()],
+                    changed_dependents: Vec::new(),
+                    dependents: vec!["doc.md".to_owned()],
+                },
+                GroupReport {
+                    id: "a-group".to_owned(),
+                    status: Status::Stale,
+                    changed_sources: vec!["src/a.rs".to_owned()],
+                    changed_dependents: Vec::new(),
+                    dependents: vec!["doc.md".to_owned()],
+                },
+            ],
+        };
+        let text = render_report(&report, Format::Paths, false).expect("render");
+        assert_eq!(text, "src/a.rs\nsrc/z.rs\n");
+    }
+
+    #[test]
+    fn paths_is_empty_for_clean_report() {
+        let text = render_report(&sample_report(), Format::Paths, false)
+            .expect("render")
+            .lines()
+            .count();
+        // sample_report has exactly one changed source across all groups.
+        assert_eq!(text, 1);
+
+        let clean = Report {
+            groups: vec![GroupReport {
+                id: "ok-one".to_owned(),
+                status: Status::Ok,
+                changed_sources: Vec::new(),
+                changed_dependents: Vec::new(),
+                dependents: vec!["doc.md".to_owned()],
+            }],
+        };
+        let text = render_report(&clean, Format::Paths, false).expect("render");
+        assert!(text.is_empty());
+    }
+
+    #[test]
+    fn paths0_is_nul_separated_without_trailing_newline() {
+        let report = Report {
+            groups: vec![
+                GroupReport {
+                    id: "b-group".to_owned(),
+                    status: Status::Stale,
+                    changed_sources: vec!["src/z.rs".to_owned()],
+                    changed_dependents: Vec::new(),
+                    dependents: vec!["doc.md".to_owned()],
+                },
+                GroupReport {
+                    id: "a-group".to_owned(),
+                    status: Status::Stale,
+                    changed_sources: vec!["src/a.rs".to_owned()],
+                    changed_dependents: Vec::new(),
+                    dependents: vec!["doc.md".to_owned()],
+                },
+            ],
+        };
+        let text = render_report(&report, Format::Paths0, false).expect("render");
+        assert_eq!(text, "src/a.rs\0src/z.rs\0");
+        assert!(!text.contains('\n'), "no newline characters in paths0");
+    }
+
+    #[test]
+    fn update_paths_is_empty() {
+        let report = UpdateReport {
+            entries: vec![UpdateEntry {
+                id: "g".to_owned(),
+                action: UpdateAction::Added,
+            }],
+        };
+        assert!(
+            render_update(&report, Format::Paths, false)
+                .expect("render")
+                .is_empty()
+        );
+        assert!(
+            render_update(&report, Format::Paths0, false)
                 .expect("render")
                 .is_empty()
         );

@@ -65,15 +65,25 @@ outdatty update --group docs  # confirm only one group
 outdatty schema               # print the manifest JSON schema
 ```
 
-Global flags: `--manifest <path>`, `--lock <path>`, `--format plain|json|quiet`,
-`--color auto|always|never`. Plain output is colorized on an interactive
-terminal; `auto` (the default) disables color when piped or when `NO_COLOR` is
-set.
+Global flags: `--manifest <path>`, `--lock <path>`,
+`--format plain|json|quiet|paths|paths0`, `--color auto|always|never`. Plain
+output is colorized on an interactive terminal; `auto` (the default) disables
+color when piped or when `NO_COLOR` is set.
 
 Exit codes: `0` in sync, `1` drift (check only), `2` operational error
 (unknown group, duplicate group name, unparseable manifest, incompatible
 lockfile). A missing lockfile is not an operational error: `check` treats every
 group as new and exits `1`, so run `outdatty update` to create it.
+
+`--format=paths` (newline-delimited) and `--format=paths0` (NUL-delimited)
+print just the deduped, sorted changed-source paths — no labels, no summary —
+so you can pipe the drift straight into your own diff or editor. outdatty
+stores hashes, not diffs, so it hands you the path set and you pick the tool:
+
+```bash
+outdatty status --format=paths0 | xargs -0 -r git diff --   # robust: handles spaces
+git diff -- $(outdatty status --format=paths)                # simple
+```
 
 ### Manifest
 

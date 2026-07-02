@@ -408,6 +408,9 @@ inputs.outdatty.url = <span class="cmd">"github:mlavrinenko/outdatty"</span>;</p
             <h3>Gate CI</h3>
 <pre><span class="dim"># .github/workflows/outdatty.yml</span>
 - run: outdatty check --format quiet</pre>
+            <h3>Review drift</h3>
+<pre><span class="dim"># pipe changed sources into your own diff tool</span>
+<span class="prompt">$</span> <span class="cmd">outdatty status --format=paths0 | xargs -0 -r git diff --</span></pre>
           </div>
         </div>
       </div>

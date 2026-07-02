@@ -4,7 +4,7 @@
   title: "emit changed artifact paths for piping to a diff tool",
   priority: 5,
   difficulty: 4,
-  status: wip(2026, 7, 2)[delegated to sonnet subagent],
+  status: done(2026, 7, 2)[commit 8e76504; paths + paths0, docs synced],
   depends-on: (link("report-declared-dependents-in-plain-and-json.typ"),),
 )
 

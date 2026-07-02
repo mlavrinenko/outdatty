@@ -4,7 +4,7 @@
   title: "write broad outdatty usage skill",
   priority: 6,
   difficulty: 3,
-  status: accepted(2026, 7, 2),
+  status: done(2026, 7, 2)[commit 04e2208; validated by sonnet, 3 fixes applied],
   depends-on: (link("report-declared-dependents-in-plain-and-json.typ"),),
 )
 

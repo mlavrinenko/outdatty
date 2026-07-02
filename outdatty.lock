@@ -13,9 +13,9 @@ groups:
       www/index.html: 34e7730dcf01bfc143409911cbaebfa496f78cacca2253b701e93d09d53c61d9
   release-notes:
     source:
-      Cargo.toml: 26fbc55cc566211861f501d9bf379c7abd364d985c17b193f93e7f933f46ce75
+      Cargo.toml: 7f3b8c968bdf73326e1ca3b42a7f381f9e94dec830f383fe64f7574244a2ec34
     dependents:
-      CHANGELOG.md: 00bc910492503b8c2fd6fbc26976c2a0826e93815f14d215fb5c5708ec35a0c5
+      CHANGELOG.md: 6459b0a87fbd1f70dde927bc69ff4d5e3d6044e451b03fb3be75211951119af3
   schema:
     source:
       src/manifest.rs: d0194cd647debd38e8e8a9e34f714f761b37f6ea8efac85ca9bddb128da6cf20

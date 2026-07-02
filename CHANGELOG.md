@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-02
+
+### Added
+
+- `--format=paths` (newline-delimited) and `--format=paths0` (NUL-delimited)
+  print the deduped, sorted changed-source paths with no labels or summary, so
+  drift can be piped straight into your own diff or editor tool.
+- json `GroupReport` now always carries the group's full declared `dependents`,
+  so tooling can find review targets without re-parsing the manifest.
+- Plain output for a failing group lists a `review dependent:` line for each
+  declared dependent, alongside `source changed:`.
+- Portable usage skill (`skills/outdatty/SKILL.md`) covering manifest
+  authoring, CI gating, and the review-before-update loop.
+
+### Fixed
+
+- Group `dependents` is no longer a required manifest key; omitting it now
+  defaults to an empty list, matching `bidirectional`.
+
 ## [0.2.0] - 2026-06-14
 
 ### Changed
@@ -60,5 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with a newline.
 - `update` reports pruned orphan lockfile entries with a `removed` action.
 
-[Unreleased]: https://github.com/mlavrinenko/outdatty/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/mlavrinenko/outdatty/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/mlavrinenko/outdatty/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/mlavrinenko/outdatty/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/mlavrinenko/outdatty/releases/tag/v0.1.0

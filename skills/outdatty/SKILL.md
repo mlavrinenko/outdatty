@@ -83,6 +83,14 @@ the other.
 Statuses: `ok`, `stale` (a source changed), `new` (no locked snapshot yet —
 fails check until the first `update`).
 
+## Coverage: require_tracked
+
+`require_tracked` (manifest-level, default `["**"]`) names files that must
+appear in some group's `source` or `dependents`; any that do not fail `check`
+as `untracked` — catching a brand-new file nobody wired in. Last match wins and
+`!` excludes (`["**", "!vendor/**"]`); the manifest and lockfile are exempt, and
+`["!**"]` opts out. Runs only on a whole-manifest check, not with `--group`.
+
 ## The review-before-update loop
 
 The core discipline: never run `outdatty update` blind. Updating just re-hashes

@@ -73,13 +73,16 @@ pub struct GroupReport {
 pub struct Report {
     /// Per-group results in manifest order.
     pub groups: Vec<GroupReport>,
+    /// Files `require_tracked` demands but no group covers. Populated only for a
+    /// whole-manifest check; a non-empty list fails a `check`.
+    pub untracked: Vec<String>,
 }
 
 impl Report {
-    /// Returns true if any group is in a failing state.
+    /// Returns true if any group is failing or any required file is untracked.
     #[must_use]
     pub fn has_failure(&self) -> bool {
-        self.groups.iter().any(|group| group.status.is_failure())
+        self.groups.iter().any(|group| group.status.is_failure()) || !self.untracked.is_empty()
     }
 }
 
@@ -196,7 +199,13 @@ pub fn evaluate(
         let locked = lock.groups.get(&id);
         groups.push(evaluate_group(group, id, base, locked, manifest.gitignore)?);
     }
-    Ok(Report { groups })
+    // Coverage is a whole-manifest concern computed by the caller (it needs the
+    // manifest and lockfile paths to exempt); an unfiltered evaluation reports no
+    // untracked files here.
+    Ok(Report {
+        groups,
+        untracked: Vec::new(),
+    })
 }
 
 /// Action taken on a group during an update.

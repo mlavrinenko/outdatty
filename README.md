@@ -106,6 +106,28 @@ counts as a change to confirm. Glob expansion skips files ignored by git — the
 directory is never traversed, and symlinks are not followed during glob
 expansion.
 
+### Coverage: catch brand-new files
+
+A glob source flags a file that *changed*. Coverage flags a file that no group
+mentions *at all* — a brand-new file someone forgot to wire in. `require_tracked`
+lists the files that must appear in some group's `source` or `dependents`; any
+that do not fail `check` as `untracked`.
+
+```yaml
+# Default when omitted: ["**"] — every git-tracked file must belong to a group.
+require_tracked:
+  - "**"              # require everything, then carve out what has no coupling
+  - "!vendor/**"      # last match wins; `!` excludes
+  - "!LICENSE"
+# require_tracked: ["src/**"]   # or require only a subtree (no negation needed)
+# require_tracked: ["!**"]      # or opt out entirely
+```
+
+Patterns match last-wins: the last one to match a path decides, and a leading
+`!` excludes it. The universe is every file git does not ignore (honouring
+`gitignore`); the manifest and lockfile are always exempt. A failing check names
+each untracked file so you can add it to a group or exclude it.
+
 ## CI and pre-commit
 
 Gate a repository by running `check` in CI; it exits non-zero on drift.

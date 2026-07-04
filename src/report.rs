@@ -3,6 +3,7 @@
 use clap::ValueEnum;
 use serde::Serialize;
 
+use crate::coverage;
 use crate::engine::{GroupReport, Report, Status, UpdateAction, UpdateEntry, UpdateReport};
 use crate::error::Result;
 use crate::style::Styler;
@@ -34,6 +35,7 @@ struct ReportView<'a> {
     failed: bool,
     total: usize,
     out_of_date: usize,
+    untracked: &'a [String],
     groups: &'a [GroupReport],
 }
 
@@ -46,9 +48,10 @@ impl<'a> ReportView<'a> {
             .count();
         Self {
             version: JSON_VERSION,
-            failed: out_of_date > 0,
+            failed: out_of_date > 0 || !report.untracked.is_empty(),
             total: report.groups.len(),
             out_of_date,
+            untracked: &report.untracked,
             groups: &report.groups,
         }
     }
@@ -120,13 +123,14 @@ fn to_json<T: Serialize>(value: &T) -> Result<String> {
 }
 
 fn render_report_plain(report: &Report, styler: Styler) -> String {
-    if report.groups.is_empty() {
+    if report.groups.is_empty() && report.untracked.is_empty() {
         return "no groups defined\n".to_owned();
     }
     let mut out = String::new();
     for group in &report.groups {
         push_group_line(&mut out, group, styler);
     }
+    out.push_str(&coverage::render_plain(&report.untracked, styler));
     let total = report.groups.len();
     let failures = report
         .groups
@@ -134,15 +138,31 @@ fn render_report_plain(report: &Report, styler: Styler) -> String {
         .filter(|group| group.status.is_failure())
         .count();
     out.push('\n');
-    if failures == 0 {
-        out.push_str(&styler.green(&format!("{total} group(s) checked, none out of date")));
-    } else {
-        out.push_str(&styler.red(&format!(
-            "{failures} of {total} group(s) out of date; review and run `outdatty update`"
-        )));
-    }
+    out.push_str(&summary_line(
+        styler,
+        total,
+        failures,
+        report.untracked.len(),
+    ));
     out.push('\n');
     out
+}
+
+fn summary_line(styler: Styler, total: usize, failures: usize, untracked: usize) -> String {
+    if failures == 0 && untracked == 0 {
+        return styler.green(&format!("{total} group(s) checked, none out of date"));
+    }
+    let mut parts = Vec::new();
+    if failures > 0 {
+        parts.push(format!("{failures} of {total} group(s) out of date"));
+    }
+    if untracked > 0 {
+        parts.push(format!("{untracked} untracked file(s)"));
+    }
+    styler.red(&format!(
+        "{}; review and run `outdatty update`",
+        parts.join("; ")
+    ))
 }
 
 fn push_group_line(out: &mut String, group: &GroupReport, styler: Styler) {
@@ -222,25 +242,30 @@ mod tests {
     use super::{Format, render_report, render_update};
     use crate::engine::{GroupReport, Report, Status, UpdateAction, UpdateEntry, UpdateReport};
 
-    fn sample_report() -> Report {
+    fn report(groups: Vec<GroupReport>) -> Report {
         Report {
-            groups: vec![
-                GroupReport {
-                    id: "ok-one".to_owned(),
-                    status: Status::Ok,
-                    changed_sources: Vec::new(),
-                    changed_dependents: Vec::new(),
-                    dependents: vec!["doc.md".to_owned()],
-                },
-                GroupReport {
-                    id: "stale-one".to_owned(),
-                    status: Status::Stale,
-                    changed_sources: vec!["code.rs".to_owned()],
-                    changed_dependents: Vec::new(),
-                    dependents: vec!["doc.md".to_owned()],
-                },
-            ],
+            groups,
+            untracked: Vec::new(),
         }
+    }
+
+    fn sample_report() -> Report {
+        report(vec![
+            GroupReport {
+                id: "ok-one".to_owned(),
+                status: Status::Ok,
+                changed_sources: Vec::new(),
+                changed_dependents: Vec::new(),
+                dependents: vec!["doc.md".to_owned()],
+            },
+            GroupReport {
+                id: "stale-one".to_owned(),
+                status: Status::Stale,
+                changed_sources: vec!["code.rs".to_owned()],
+                changed_dependents: Vec::new(),
+                dependents: vec!["doc.md".to_owned()],
+            },
+        ])
     }
 
     #[test]
@@ -265,15 +290,13 @@ mod tests {
 
     #[test]
     fn plain_omits_review_dependent_for_ok_groups() {
-        let report = Report {
-            groups: vec![GroupReport {
-                id: "ok-one".to_owned(),
-                status: Status::Ok,
-                changed_sources: Vec::new(),
-                changed_dependents: Vec::new(),
-                dependents: vec!["doc.md".to_owned()],
-            }],
-        };
+        let report = report(vec![GroupReport {
+            id: "ok-one".to_owned(),
+            status: Status::Ok,
+            changed_sources: Vec::new(),
+            changed_dependents: Vec::new(),
+            dependents: vec!["doc.md".to_owned()],
+        }]);
         let text = render_report(&report, Format::Plain, false).expect("render");
         assert!(
             !text.contains("review dependent:"),
@@ -296,15 +319,13 @@ mod tests {
 
     #[test]
     fn plain_omits_dependent_only_changes() {
-        let report = Report {
-            groups: vec![GroupReport {
-                id: "directed".to_owned(),
-                status: Status::Ok,
-                changed_sources: Vec::new(),
-                changed_dependents: vec!["doc.md".to_owned()],
-                dependents: vec!["doc.md".to_owned()],
-            }],
-        };
+        let report = report(vec![GroupReport {
+            id: "directed".to_owned(),
+            status: Status::Ok,
+            changed_sources: Vec::new(),
+            changed_dependents: vec!["doc.md".to_owned()],
+            dependents: vec!["doc.md".to_owned()],
+        }]);
         let text = render_report(&report, Format::Plain, false).expect("render");
         assert!(
             !text.contains("dependent changed"),
@@ -338,8 +359,7 @@ mod tests {
 
     #[test]
     fn empty_report_is_reported() {
-        let report = Report { groups: Vec::new() };
-        let text = render_report(&report, Format::Plain, false).expect("render");
+        let text = render_report(&report(Vec::new()), Format::Plain, false).expect("render");
         assert!(text.contains("no groups"));
     }
 
@@ -380,24 +400,22 @@ mod tests {
 
     #[test]
     fn paths_lists_changed_sources_sorted_and_deduped() {
-        let report = Report {
-            groups: vec![
-                GroupReport {
-                    id: "b-group".to_owned(),
-                    status: Status::Stale,
-                    changed_sources: vec!["src/z.rs".to_owned(), "src/a.rs".to_owned()],
-                    changed_dependents: Vec::new(),
-                    dependents: vec!["doc.md".to_owned()],
-                },
-                GroupReport {
-                    id: "a-group".to_owned(),
-                    status: Status::Stale,
-                    changed_sources: vec!["src/a.rs".to_owned()],
-                    changed_dependents: Vec::new(),
-                    dependents: vec!["doc.md".to_owned()],
-                },
-            ],
-        };
+        let report = report(vec![
+            GroupReport {
+                id: "b-group".to_owned(),
+                status: Status::Stale,
+                changed_sources: vec!["src/z.rs".to_owned(), "src/a.rs".to_owned()],
+                changed_dependents: Vec::new(),
+                dependents: vec!["doc.md".to_owned()],
+            },
+            GroupReport {
+                id: "a-group".to_owned(),
+                status: Status::Stale,
+                changed_sources: vec!["src/a.rs".to_owned()],
+                changed_dependents: Vec::new(),
+                dependents: vec!["doc.md".to_owned()],
+            },
+        ]);
         let text = render_report(&report, Format::Paths, false).expect("render");
         assert_eq!(text, "src/a.rs\nsrc/z.rs\n");
     }
@@ -411,39 +429,35 @@ mod tests {
         // sample_report has exactly one changed source across all groups.
         assert_eq!(text, 1);
 
-        let clean = Report {
-            groups: vec![GroupReport {
-                id: "ok-one".to_owned(),
-                status: Status::Ok,
-                changed_sources: Vec::new(),
-                changed_dependents: Vec::new(),
-                dependents: vec!["doc.md".to_owned()],
-            }],
-        };
+        let clean = report(vec![GroupReport {
+            id: "ok-one".to_owned(),
+            status: Status::Ok,
+            changed_sources: Vec::new(),
+            changed_dependents: Vec::new(),
+            dependents: vec!["doc.md".to_owned()],
+        }]);
         let text = render_report(&clean, Format::Paths, false).expect("render");
         assert!(text.is_empty());
     }
 
     #[test]
     fn paths0_is_nul_separated_without_trailing_newline() {
-        let report = Report {
-            groups: vec![
-                GroupReport {
-                    id: "b-group".to_owned(),
-                    status: Status::Stale,
-                    changed_sources: vec!["src/z.rs".to_owned()],
-                    changed_dependents: Vec::new(),
-                    dependents: vec!["doc.md".to_owned()],
-                },
-                GroupReport {
-                    id: "a-group".to_owned(),
-                    status: Status::Stale,
-                    changed_sources: vec!["src/a.rs".to_owned()],
-                    changed_dependents: Vec::new(),
-                    dependents: vec!["doc.md".to_owned()],
-                },
-            ],
-        };
+        let report = report(vec![
+            GroupReport {
+                id: "b-group".to_owned(),
+                status: Status::Stale,
+                changed_sources: vec!["src/z.rs".to_owned()],
+                changed_dependents: Vec::new(),
+                dependents: vec!["doc.md".to_owned()],
+            },
+            GroupReport {
+                id: "a-group".to_owned(),
+                status: Status::Stale,
+                changed_sources: vec!["src/a.rs".to_owned()],
+                changed_dependents: Vec::new(),
+                dependents: vec!["doc.md".to_owned()],
+            },
+        ]);
         let text = render_report(&report, Format::Paths0, false).expect("render");
         assert_eq!(text, "src/a.rs\0src/z.rs\0");
         assert!(!text.contains('\n'), "no newline characters in paths0");

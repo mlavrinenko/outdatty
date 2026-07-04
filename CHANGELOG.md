@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Whole-project coverage via a manifest-level `require_tracked` (default
+  `["**"]`): every file git does not ignore must appear in some group's `source`
+  or `dependents`, so a brand-new file that no group tracks fails `check` as
+  `untracked`. Patterns match last-wins with `!` negation (e.g.
+  `["**", "!vendor/**"]`); the manifest and lockfile are always exempt, and
+  `["!**"]` opts out. Coverage runs only on a whole-manifest check, not under a
+  scoped `--group` selection. JSON `check` output gained a top-level `untracked`
+  array, and `failed` is set when it is non-empty.
+
 ## [0.3.0] - 2026-07-02
 
 ### Added

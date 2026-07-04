@@ -6,6 +6,7 @@
 
 use std::path::{Path, PathBuf};
 
+use crate::coverage;
 use crate::engine::{self, Filter, Report};
 use crate::error::{Error, Result};
 use crate::lock::{self, Lockfile};
@@ -42,6 +43,7 @@ pub struct Config {
 /// Loaded manifest plus the paths derived for an operation.
 struct Context {
     manifest: Manifest,
+    manifest_path: PathBuf,
     base: PathBuf,
     lock_path: PathBuf,
 }
@@ -69,6 +71,7 @@ impl Config {
         let lock_path = self.lock_path(&manifest_path);
         Ok(Context {
             manifest,
+            manifest_path,
             base,
             lock_path,
         })
@@ -109,7 +112,26 @@ fn evaluate(config: &Config, groups: &[String]) -> Result<Report> {
     let ctx = config.context()?;
     let lock = Lockfile::load_or_default(&ctx.lock_path)?;
     let filter = make_filter(&ctx.manifest, groups)?;
-    engine::evaluate(&ctx.manifest, &lock, &ctx.base, &filter)
+    let mut report = engine::evaluate(&ctx.manifest, &lock, &ctx.base, &filter)?;
+    // Coverage is whole-manifest; skip it under a scoped `--group` selection.
+    if matches!(filter, Filter::All) {
+        report.untracked = coverage::untracked(&ctx.manifest, &ctx.base, &exempt_paths(&ctx))?;
+    }
+    Ok(report)
+}
+
+/// The manifest and lockfile, base-relative and slash-normalized, so coverage
+/// never reports the files that drive it.
+fn exempt_paths(ctx: &Context) -> Vec<String> {
+    [ctx.manifest_path.as_path(), ctx.lock_path.as_path()]
+        .into_iter()
+        .map(|path| {
+            path.strip_prefix(&ctx.base)
+                .unwrap_or(path)
+                .to_string_lossy()
+                .replace('\\', "/")
+        })
+        .collect()
 }
 
 /// Evaluates the selected groups and reports whether any is out of date.
@@ -290,6 +312,31 @@ mod tests {
 
         update(&config, &["pair".to_owned()]).expect("scoped update");
         assert!(!check(&config, &[]).expect("check").failed);
+    }
+
+    #[test]
+    fn untracked_file_fails_check() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let config = project(dir.path());
+        update(&config, &[]).expect("update");
+        assert!(
+            !check(&config, &[]).expect("check").failed,
+            "clean once every file is covered or exempt"
+        );
+
+        write(dir.path(), "orphan.rs", "new file in no group");
+        let out = check(&config, &[]).expect("check");
+        assert!(out.failed, "a brand-new uncovered file fails check");
+        assert!(out.output.contains("orphan.rs"), "the file is named");
+        assert!(out.output.contains("untracked"));
+
+        // A scoped check is per-group and does not run coverage.
+        assert!(
+            !check(&config, &["pair".to_owned()])
+                .expect("scoped check")
+                .failed,
+            "scoped check ignores whole-project coverage"
+        );
     }
 
     #[test]

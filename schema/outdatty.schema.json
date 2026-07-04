@@ -16,6 +16,16 @@
       "items": {
         "$ref": "#/definitions/Group"
       }
+    },
+    "require_tracked": {
+      "description": "Glob patterns for files that must be covered by some group's `source` or `dependents`. Defaults to `[\"**\"]`, so every file git does not ignore must belong to a group. Patterns are matched last-wins: a later pattern overrides an earlier match and a `!` prefix excludes, so `[\"**\", \"!vendor/**\"]` requires everything but `vendor/`, and `[\"src/**\"]` requires only `src/`. The manifest and lockfile themselves are always exempt. Set to `[\"!**\"]` to opt out entirely.",
+      "default": [
+        "**"
+      ],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     }
   },
   "additionalProperties": false,

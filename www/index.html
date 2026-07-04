@@ -348,11 +348,17 @@ updated  feature
           Globs are gitignore-aware by default.
         </p>
 <pre><span class="dim"># yaml-language-server: $schema=https://raw.githubusercontent.com/mlavrinenko/outdatty/main/schema/outdatty.schema.json</span>
+require_tracked: ["**", "!vendor/**"]  <span class="dim"># every file must belong to a group; !excludes</span>
 groups:
   - name: feature
     source: [src/feature.rs]          <span class="dim"># literal paths or globs like src/**/*.rs</span>
     dependents: [docs/feature.mdx, tests/feature.rs]
     <span class="dim"># bidirectional: true             # also flag when a dependent changes</span></pre>
+        <p>
+          <code>require_tracked</code> (default <code>["**"]</code>) fails
+          <code>check</code> when a brand-new file belongs to no group &mdash; so
+          nothing slips in untracked.
+        </p>
       </div>
     </section>
 

@@ -2,6 +2,20 @@
 
 # outdatty gating its own repository. When a source below changes, `check`
 # fails until the listed dependents are re-confirmed with `outdatty update`.
+
+# Coverage: every git-tracked file must belong to a group below, so a brand-new
+# file cannot slip in untracked. Files with no meaningful coupling are excluded
+# here; the manifest and lockfile are always exempt. Last match wins.
+require_tracked:
+  - "**"
+  - "!tasks/**"
+  - "!.mindtape/**"
+  - "!AGENTS.md"
+  - "!CLAUDE.md"
+  - "!LICENSE-MIT"
+  - "!.envrc"
+  - "!.gitignore"
+
 groups:
   # The manifest types are the source of truth for the JSON schema and the
   # example manifest; both must track changes to them.
@@ -25,10 +39,35 @@ groups:
       - README.md
       - www/index.html
       - skills/outdatty/SKILL.md
+      - flake.lock
 
-  # A package change should be reflected in the changelog.
+  # The rest of the implementation and its integration tests. A behaviour change
+  # should prompt a look at the tests; a test-only edit stays ok (directed).
+  - name: code
+    source:
+      - src/**/*.rs
+    dependents:
+      - tests/cli.rs
+
+  # Dev tooling and standards; a change should be reflected in the contributor
+  # guide and the CI that enforces it.
+  - name: dev-standards
+    source:
+      - Justfile
+      - clippy.toml
+      - rustfmt.toml
+      - rust-toolchain.toml
+      - tarpaulin.toml
+      - .linecop.yaml
+    dependents:
+      - CONTRIBUTING.md
+      - .github/workflows/*.yml
+
+  # A package change should be reflected in the changelog, and the lockfile in
+  # the manifest.
   - name: release-notes
     source:
       - Cargo.toml
     dependents:
       - CHANGELOG.md
+      - Cargo.lock

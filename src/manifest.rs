@@ -16,6 +16,11 @@ const fn default_gitignore() -> bool {
     true
 }
 
+/// Default for [`Manifest::require_tracked`]: the whole project must be covered.
+fn default_require_tracked() -> Vec<String> {
+    vec!["**".to_owned()]
+}
+
 /// A declared dependency graph between artifacts.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -31,6 +36,16 @@ pub struct Manifest {
     /// enter a group. Set to false to match every file on disk.
     #[serde(default = "default_gitignore")]
     pub gitignore: bool,
+
+    /// Glob patterns for files that must be covered by some group's `source` or
+    /// `dependents`. Defaults to `["**"]`, so every file git does not ignore must
+    /// belong to a group. Patterns are matched last-wins: a later pattern
+    /// overrides an earlier match and a `!` prefix excludes, so
+    /// `["**", "!vendor/**"]` requires everything but `vendor/`, and `["src/**"]`
+    /// requires only `src/`. The manifest and lockfile themselves are always
+    /// exempt. Set to `["!**"]` to opt out entirely.
+    #[serde(default = "default_require_tracked")]
+    pub require_tracked: Vec<String>,
 }
 
 impl Default for Manifest {
@@ -38,6 +53,7 @@ impl Default for Manifest {
         Self {
             groups: Vec::new(),
             gitignore: default_gitignore(),
+            require_tracked: default_require_tracked(),
         }
     }
 }
@@ -186,6 +202,14 @@ mod tests {
         let manifest: Manifest = serde_yaml_ng::from_str(text).expect("parse");
         assert!(manifest.gitignore, "gitignore defaults on");
         assert!(Manifest::default().gitignore);
+    }
+
+    #[test]
+    fn require_tracked_defaults_to_whole_project() {
+        let text = "groups:\n  - name: g\n    source: [a.rs]\n";
+        let manifest: Manifest = serde_yaml_ng::from_str(text).expect("parse");
+        assert_eq!(manifest.require_tracked, vec!["**".to_owned()]);
+        assert_eq!(Manifest::default().require_tracked, vec!["**".to_owned()]);
     }
 
     #[test]

@@ -45,6 +45,27 @@ pub fn expand(patterns: &[String], base: &Path, gitignore: bool) -> Result<Vec<S
     Ok(out)
 }
 
+/// Walks `base` and returns every file path, relative to `base` and
+/// slash-normalized, honouring the gitignore chain when `gitignore` is set. Used
+/// to enumerate the project's files for coverage checks. Directories, symlinks,
+/// and the `.git` directory are never returned.
+#[must_use]
+pub fn all_files(base: &Path, gitignore: bool) -> Vec<String> {
+    let mut out = Vec::new();
+    for entry in build_walker(base, gitignore) {
+        let Ok(entry) = entry else { continue };
+        if !entry.file_type().is_some_and(|kind| kind.is_file()) {
+            continue;
+        }
+        let path = entry.path();
+        let rel = path.strip_prefix(base).unwrap_or(path);
+        out.push(normalize(&rel.to_string_lossy()));
+    }
+    out.sort();
+    out.dedup();
+    out
+}
+
 fn expand_literal(pattern: &str, base: &Path, out: &mut Vec<String>) {
     if base.join(pattern).is_file() {
         out.push(normalize(pattern));
@@ -140,7 +161,7 @@ fn normalize(path: &str) -> String {
 mod tests {
     use std::path::Path;
 
-    use super::{expand, is_glob};
+    use super::{all_files, expand, is_glob};
 
     fn touch(dir: &Path, name: &str) {
         std::fs::write(dir.join(name), b"x").expect("write");
@@ -217,6 +238,33 @@ mod tests {
             literal,
             vec!["target/built.rs".to_owned()],
             "explicit literal overrides gitignore"
+        );
+    }
+
+    #[test]
+    fn all_files_lists_every_non_ignored_file() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        std::fs::write(dir.path().join(".gitignore"), "/target\n").expect("gitignore");
+        std::fs::create_dir(dir.path().join("target")).expect("mkdir");
+        std::fs::create_dir(dir.path().join("src")).expect("mkdir");
+        touch(dir.path(), "top.rs");
+        std::fs::write(dir.path().join("src/nested.rs"), b"x").expect("write");
+        std::fs::write(dir.path().join("target/built.rs"), b"x").expect("write");
+
+        let on = all_files(dir.path(), true);
+        assert_eq!(
+            on,
+            vec![
+                ".gitignore".to_owned(),
+                "src/nested.rs".to_owned(),
+                "top.rs".to_owned()
+            ],
+            "ignored target/ is dropped; nested files are included"
+        );
+        let off = all_files(dir.path(), false);
+        assert!(
+            off.contains(&"target/built.rs".to_owned()),
+            "gitignore off lists all"
         );
     }
 

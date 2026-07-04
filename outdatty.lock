@@ -5,20 +5,52 @@ groups:
     source:
       flake.nix: 41f166435225d7ec61c20f46c99cf46d7b83eb245e35566b0491dc8bbcafb308
       src/cli.rs: fb637c7aec8d3d939b77b55b913d9a0df678309ae04fd84572814c147a3f5ecc
-      src/commands.rs: aab053a8c40d9ce53cc785e0d9a17538307c88ff08e3d3fec992b5f8afcdfd50
-      src/report.rs: cf09b00aa66dbf3ea5367d0bf858a94a0abe5f1127da4d16ab7fe85546508b03
+      src/commands.rs: 6842e9828e429aad16a49b6c611593db74e6c678e7b53f49cabf2c50f89ec143
+      src/report.rs: 05927cb10e190005c3eeadf213f7a0e1c3b842edf46e5387fc6418b0c6d4a418
     dependents:
-      README.md: 1810c1b870013ee2d3fe116bb2d4158ed57e62299e21d965b4e5a69e4c1b351a
-      skills/outdatty/SKILL.md: 21ea38a1832cc0e865576a12f7ca2407df049a67826f9b423f4853ed4dcd8479
-      www/index.html: 34e7730dcf01bfc143409911cbaebfa496f78cacca2253b701e93d09d53c61d9
+      README.md: 2b752e3512519196833661a16d8b00d1285b1b617f5f911e0a6e5ad0ac08236f
+      flake.lock: bd837dbc0495ca857a4daa534b0dad361be5b819b9e666491628bfb15a5aa768
+      skills/outdatty/SKILL.md: 421d49f9663611d53673899c93d369e1656e3a360b660f6d6f5ab89bbc245661
+      www/index.html: 0ff167143b59ec4f208e6ea55a21f9ad3c5d0c9fd1e1c480c106163cbfb19729
+  code:
+    source:
+      src/cli.rs: fb637c7aec8d3d939b77b55b913d9a0df678309ae04fd84572814c147a3f5ecc
+      src/commands.rs: 6842e9828e429aad16a49b6c611593db74e6c678e7b53f49cabf2c50f89ec143
+      src/coverage.rs: 4a0924fb868283303269052a407005570bf624e35e01e239910d125ce65c937d
+      src/engine.rs: 98285b09263adc61e35b90486960c8c966326738a18632a6328d11ed88e55955
+      src/error.rs: 54af5c8d31dde6b9b9dc71657d9deda5e4ca1062be3c61cb19e79f508aa75020
+      src/hashing.rs: 30a10a6999ffee5d12d669340cbacf347588ae1b68e340d257e6b5c603077710
+      src/lib.rs: eacf74264a46223404d35e84461ee5a7b0992bcd38cbbd097ff3251c3a50ea8b
+      src/lock.rs: b1af3ae68f6a3c40a7bcde6706d0951f609d628a04d2ee083f66641ea262e760
+      src/main.rs: d40ff41e718c6e70a131ce4de30f391d5d040254febf85c9a3572b6676ed8700
+      src/manifest.rs: 6c23ec20d1c3cb88c178d4ad1f0fe47c6f3ff2cb69f36ae4891d17bd2ce6f551
+      src/report.rs: 05927cb10e190005c3eeadf213f7a0e1c3b842edf46e5387fc6418b0c6d4a418
+      src/resolve.rs: cd0e1a76bbc0592643c23c7c6bb29bc843e0b34e8db9c78d830290b23c26365d
+      src/style.rs: 9c4a39bd262977371c30ef919720894545f0823f3bb3afee2caf8c7a89f1481f
+    dependents:
+      tests/cli.rs: c97985039ef19474a33ea7f52b6d0947d5cee52694a154b0365d30c1090bbb4d
+  dev-standards:
+    source:
+      .linecop.yaml: 5d369764be1c50647f60296a1b6ca731a800eba31c3da578d4126eb7e3706154
+      Justfile: 4f7a9f5bf311c17a9601d59933aa3d202aef37bb116df641c3d70470e5c957fa
+      clippy.toml: 738d3b6cf1ba0d554b8211b6f7c3cc8bda8674e8e70bc10a119909db6e5ee9a6
+      rust-toolchain.toml: 83dc105336fb6853b605a1ede887074543b7bc4c61dac41c8786fa784b62a1f1
+      rustfmt.toml: 662d05a84401be3c6950df071a503437895252194e84f4f3c810a7084f110aa1
+      tarpaulin.toml: aa7f4b78f06ee178b67d6739908343d54baab494a0831404ffded360900e8d54
+    dependents:
+      .github/workflows/ci.yml: 24e80eb9b34206ad28e3242ddfcf67631d325a61e571c46545bdd4b325cd5e45
+      .github/workflows/pages.yml: f92bea5316c48f1ffd51251162e72d264be2ba709320e0f4cfdb4fd7e3a2be96
+      .github/workflows/release.yml: 463cbaefca5db31888bd56e7def27bd5717ec007b4c107e958cc3ececbe52d26
+      CONTRIBUTING.md: 09b29d54b5fd2e1389c18f50f3c969fec12fae91e9d0a1b233d00b2a26fec611
   release-notes:
     source:
       Cargo.toml: 7f3b8c968bdf73326e1ca3b42a7f381f9e94dec830f383fe64f7574244a2ec34
     dependents:
-      CHANGELOG.md: 6459b0a87fbd1f70dde927bc69ff4d5e3d6044e451b03fb3be75211951119af3
+      CHANGELOG.md: d1cf761b673ad775154e10b21a3f86c5e79833dc709d5877a0f12bf0a61c543f
+      Cargo.lock: 1f1122c97eca1536f254b2e9e6f119693219441861eb8b6d6f57b084fc57e408
   schema:
     source:
-      src/manifest.rs: d0194cd647debd38e8e8a9e34f714f761b37f6ea8efac85ca9bddb128da6cf20
+      src/manifest.rs: 6c23ec20d1c3cb88c178d4ad1f0fe47c6f3ff2cb69f36ae4891d17bd2ce6f551
     dependents:
-      examples/outdatty.yaml: e52950ed9108c5473041b21972f6dc4112d328efae31338f173cbf5ef6f9cdf9
-      schema/outdatty.schema.json: b34c5ff0be79b6d8033f94326cee6e15ed64c9998fe4eaa094c8044d0df684c6
+      examples/outdatty.yaml: cf9056a2f6d195aa0376d5c15e2935acb694e91ae78ab06aea26afbf82e91b06
+      schema/outdatty.schema.json: d07f66253200fcae3dfdd35b625ccc0fa7a1959fb1525ffc548041a0a003a29a

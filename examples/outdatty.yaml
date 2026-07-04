@@ -3,6 +3,14 @@
 # Example manifest. Each group couples source artifacts to the dependents that
 # must be re-confirmed whenever a source changes. Confirm with `outdatty update`,
 # gate in CI with `outdatty check`.
+
+# Coverage: every file git does not ignore must belong to a group below, so a
+# brand-new file cannot slip in untracked. Defaults to ["**"] when omitted;
+# last match wins and `!` excludes. The manifest and lockfile are always exempt.
+require_tracked:
+  - "**"
+  - "!vendor/**"
+
 groups:
   # Directed coupling: editing the code flags the docs and tests as stale until
   # a human re-confirms them. Editing only the docs is allowed.

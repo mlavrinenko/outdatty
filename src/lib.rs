@@ -7,12 +7,17 @@
 //! validates synchronisation, so it works for any file — code, docs, `docx`,
 //! configuration.
 //!
+//! It can also assert whole-project coverage ([`coverage`]): every file the
+//! manifest's `require_tracked` patterns demand must belong to some group, so a
+//! brand-new file that no group lists fails a `check`.
+//!
 //! The modules expose the manifest ([`manifest`]) and lockfile ([`lock`])
 //! formats, content hashing ([`hashing`]), pattern resolution ([`resolve`]),
 //! the evaluation engine ([`engine`]), and report rendering ([`report`]).
 
 pub mod cli;
 pub mod commands;
+pub mod coverage;
 pub mod engine;
 pub mod error;
 pub mod hashing;

@@ -35,7 +35,7 @@ clippy:
 
 # Auto-fix clippy warnings (allow-dirty/-staged: fix-check runs pre-commit, tree is dirty)
 clippy-fix:
-    cargo clippy --fix --workspace --all-targets --allow-dirty --allow-staged -- -D warnings
+    cargo clippy --fix -q --workspace --all-targets --allow-dirty --allow-staged -- -D warnings
 
 # Build the project
 build *args:

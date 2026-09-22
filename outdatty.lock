@@ -33,7 +33,7 @@ groups:
   dev-standards:
     source:
       .linecop.yaml: 5d369764be1c50647f60296a1b6ca731a800eba31c3da578d4126eb7e3706154
-      Justfile: 4f7a9f5bf311c17a9601d59933aa3d202aef37bb116df641c3d70470e5c957fa
+      Justfile: cb97e6d00a9fcd9617cd3f29391ce75643a840ad8e2877e92eeccfc45cc9211e
       clippy.toml: 738d3b6cf1ba0d554b8211b6f7c3cc8bda8674e8e70bc10a119909db6e5ee9a6
       rust-toolchain.toml: 83dc105336fb6853b605a1ede887074543b7bc4c61dac41c8786fa784b62a1f1
       rustfmt.toml: 662d05a84401be3c6950df071a503437895252194e84f4f3c810a7084f110aa1

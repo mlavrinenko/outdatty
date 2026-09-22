@@ -97,6 +97,19 @@ pub enum Error {
     #[error("no such group: {0}")]
     UnknownGroup(String),
 
+    /// A `--dependent` path is not among the named group's dependents.
+    #[error("group {group} declares no dependent {path}")]
+    UnknownDependent {
+        /// The group that was searched.
+        group: String,
+        /// The path it does not declare.
+        path: String,
+    },
+
+    /// A `--dependent` update names a group the lockfile has never recorded.
+    #[error("group {0} has no recorded snapshot to amend; run `outdatty update --group {0}` first")]
+    UnrecordedGroup(String),
+
     /// Rendering a report to JSON failed.
     #[error("failed to render json: {0}")]
     Json(#[from] serde_json::Error),
@@ -119,5 +132,15 @@ mod tests {
         assert!(unnamed.to_string().contains("empty `name`"));
         let empty = Error::EmptyGroupSource("pair".to_owned());
         assert!(empty.to_string().contains("empty `source`"));
+        let stray = Error::UnknownDependent {
+            group: "pair".to_owned(),
+            path: "typo.md".to_owned(),
+        };
+        assert_eq!(
+            stray.to_string(),
+            "group pair declares no dependent typo.md"
+        );
+        let fresh = Error::UnrecordedGroup("pair".to_owned());
+        assert!(fresh.to_string().contains("outdatty update --group pair"));
     }
 }

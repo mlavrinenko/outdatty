@@ -199,3 +199,67 @@ fn status_reports_drift_without_failing() {
         .success()
         .stdout(contains("stale"));
 }
+
+/// Records `a.md` and `b.md` as dependents of `g`, then edits both, leaving
+/// two pending dependent-only changes.
+fn two_drifted_dependents(dir: &Path) {
+    write(
+        dir,
+        "outdatty.yaml",
+        "groups:\n  - name: g\n    source: [code.rs]\n    dependents: [a.md, b.md]\n",
+    );
+    write(dir, "code.rs", "src");
+    write(dir, "a.md", "a");
+    write(dir, "b.md", "b");
+    bin().current_dir(dir).arg("update").assert().success();
+    write(dir, "a.md", "a reviewed");
+    write(dir, "b.md", "b edited elsewhere");
+}
+
+#[test]
+fn update_dependent_records_only_the_named_path() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    two_drifted_dependents(dir.path());
+    bin()
+        .current_dir(&dir)
+        .args(["update", "--group", "g", "--dependent", "a.md"])
+        .assert()
+        .success()
+        .stdout(contains("updated"));
+    bin()
+        .current_dir(&dir)
+        .args(["status", "--format", "json"])
+        .assert()
+        .success()
+        .stdout(contains(
+            "\"changed_dependents\": [\n        \"b.md\"\n      ]",
+        ));
+}
+
+#[test]
+fn update_dependent_refuses_an_undeclared_path() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    two_drifted_dependents(dir.path());
+    let before = std::fs::read_to_string(dir.path().join("outdatty.lock")).expect("lock");
+    bin()
+        .current_dir(&dir)
+        .args(["update", "--group", "g", "--dependent", "a.md"])
+        .args(["--dependent", "typo.md"])
+        .assert()
+        .code(2)
+        .stderr(contains("typo.md").and(contains("g")));
+    let after = std::fs::read_to_string(dir.path().join("outdatty.lock")).expect("lock");
+    assert_eq!(before, after, "a refused update writes nothing");
+}
+
+#[test]
+fn update_dependent_requires_a_group() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    two_drifted_dependents(dir.path());
+    bin()
+        .current_dir(&dir)
+        .args(["update", "--dependent", "a.md"])
+        .assert()
+        .code(2)
+        .stderr(contains("--group"));
+}

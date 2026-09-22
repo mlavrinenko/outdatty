@@ -54,6 +54,10 @@ enum Command {
         /// Limit to the named group(s). Repeatable.
         #[arg(long = "group", value_name = "ID")]
         groups: Vec<String>,
+        /// Record only this dependent of each named group, leaving its sources
+        /// and other dependents as recorded. Repeatable; needs --group.
+        #[arg(long = "dependent", value_name = "PATH", requires = "groups")]
+        dependents: Vec<String>,
     },
     /// Show the status of every group without failing.
     Status {
@@ -102,8 +106,8 @@ impl Cli {
                 print_output(&outcome.output);
                 Ok(exit_code(outcome.failed))
             }
-            Command::Update { groups } => {
-                print_output(&commands::update(&config, groups)?);
+            Command::Update { groups, dependents } => {
+                print_output(&commands::update(&config, groups, dependents)?);
                 Ok(ExitCode::SUCCESS)
             }
             Command::Status { groups } => {

@@ -20,40 +20,40 @@ description: >-
 
 ## What it is and why
 
-outdatty catches the failure where you edit a source (code, a schema, a config)
-and forget to update the things that describe or depend on it (a README, a
-generated file, a test). You declare those couplings once in `outdatty.yaml`;
-outdatty records a content hash of every file in `outdatty.lock` when you
-confirm a coupling is consistent. Later, if a source's hash no longer matches
-the locked one, the group is "stale" — a signal to go re-check its dependents.
+outdatty catches the edit to a source (code, a schema, a config) that leaves
+what describes or depends on it (a README, a generated file, a test) behind.
+Declare each coupling once in `outdatty.yaml`; confirming records every file's
+content hash in `outdatty.lock`. When a source's hash no longer matches the
+locked one, its group is "stale" — go re-check its dependents.
 
-Key mental model: outdatty compares against the last confirmed hash in the
-lockfile, not against git. "Drift" means "a source changed since the last
-`outdatty update`", independent of commits. And it stores only hashes, never
-content — so it can tell you what changed, but it cannot show you a diff. You
-bring your own diff tool (see the review-before-update loop below).
+Mental model: outdatty compares against the lockfile, not git. "Drift" means
+"changed since the last `outdatty update`", independent of commits. It stores
+hashes, never content, so it names what changed but cannot diff it — bring
+your own diff tool (see the review-before-update loop).
 
 ## Commands
 
 - `outdatty init [--force]` — write a starter `outdatty.yaml`.
 - `outdatty check [--group ID]...` — fail if any selected group is stale or new.
-  This is the CI gate. Exit codes: 0 = all confirmed, 1 = drift, 2 = error
-  (bad manifest, missing file, etc.).
-- `outdatty status [--group ID]...` — same report as check but never fails
-  (exit 0). Use it locally to look without gating.
-- `outdatty update [--group ID]...` — re-hash the selected groups and rewrite
-  the lockfile, confirming the current state. Unscoped, it also prunes lockfile
-  entries whose group no longer exists in the manifest.
+  The CI gate. Exit codes: 0 = all confirmed, 1 = drift, 2 = error (bad
+  manifest, missing file, etc.).
+- `outdatty status [--group ID]...` — the check report, but always exit 0. Use
+  it locally to look without gating.
+- `outdatty update [--group ID]... [--dependent PATH]...` — re-hash the selected
+  groups into the lockfile, confirming the current state. Unscoped, it also
+  prunes entries whose group left the manifest. `--dependent` (needs `--group`)
+  records only that dependent's hash, leaving the group's sources and other
+  dependents as locked; a path the group does not declare is an error.
 - `outdatty schema` — print the manifest's JSON schema.
 
 Global flags (all subcommands): `--manifest <path>`, `--lock <path>`,
 `--format <plain|json|quiet|paths|paths0>`, `--color <auto|always|never>`.
-`--group` is repeatable to scope to specific groups.
+`--group` and `--dependent` are repeatable.
 
 ## The manifest
 
-`outdatty.yaml` declares groups. A change to any `source` marks the group stale
-until you re-confirm; `dependents` are the files to review when that happens.
+`outdatty.yaml` declares groups. A change to any `source` stales the group until
+you re-confirm; `dependents` are the files to review when that happens.
 
 ```yaml
 # yaml-language-server: $schema=https://raw.githubusercontent.com/mlavrinenko/outdatty/main/schema/outdatty.schema.json
@@ -69,16 +69,16 @@ groups:
 gitignore: true               # default: glob expansion skips git-ignored paths
 ```
 
-Required keys: `name` and a non-empty `source`. `dependents` defaults to empty
-(a source-only group has nothing to review); `bidirectional` and `gitignore`
-are optional. Gitignore filtering applies only to glob matches — an explicitly
-listed path is always included, even if git-ignored.
+Required: `name` and a non-empty `source`. `dependents` defaults to empty (a
+source-only group has nothing to review); `bidirectional` and `gitignore` are
+optional. Gitignore filtering applies only to glob matches — an explicitly
+listed path is always included.
 
 Directed (default): editing a dependent alone is fine — only source changes
 stale the group. Bidirectional: a dependent change stales it too. Use
-bidirectional when the two sides must stay mutually consistent (e.g. a spec and
-its implementation); use directed when one side is generated from or documents
-the other.
+bidirectional when both sides must stay mutually consistent (a spec and its
+implementation); directed when one side is generated from or documents the
+other.
 
 Statuses: `ok`, `stale` (a source changed), `new` (no locked snapshot yet —
 fails check until the first `update`).
@@ -93,15 +93,13 @@ as `untracked` — catching a brand-new file nobody wired in. Last match wins an
 
 ## The review-before-update loop
 
-The core discipline: never run `outdatty update` blind. Updating just re-hashes
-and silences the alarm — if you haven't looked, you've confirmed drift you never
-reviewed. Instead:
+Never run `outdatty update` blind: it re-hashes and silences the alarm, so
+updating without looking confirms drift nobody reviewed. Instead:
 
-1. See what drifted: `outdatty check` (in CI) or `outdatty status` (locally).
-   Read two things per stale group — the changed sources (what moved) and the
-   listed dependents (what to eyeball).
-2. Look at the source changes with your own diff tool. outdatty hands you the
-   paths; you pick the tool:
+1. See what drifted: `outdatty check` (CI) or `outdatty status` (locally). Per
+   stale group, read the changed sources (what moved) and the listed
+   dependents (what to eyeball).
+2. Diff the source changes with your own tool; outdatty hands you the paths:
 
    ```sh
    # robust — NUL-delimited, safe for paths with spaces
@@ -112,19 +110,22 @@ reviewed. Instead:
    outdatty status --format=paths0 | xargs -0 -r "$EDITOR"
    ```
 
-   Note the caveat: `git diff` shows working-tree-vs-HEAD, which equals
-   "changed since locked" only when your commit cadence matches your `outdatty
-   update` cadence. It is a good-enough proxy for review, not an exact
-   since-locked diff.
-3. For each stale group, update the dependents that actually need it (edit the
-   README, regenerate the file, fix the test). If a dependent needs no change,
-   that's fine — the point is that you looked.
-4. Confirm: `outdatty update --group <id>`. Now `outdatty check` passes for it.
+   Caveat: `git diff` is working-tree-vs-HEAD, which equals "changed since
+   locked" only when you commit as often as you `outdatty update`. A
+   good-enough proxy for review, not an exact since-locked diff.
+3. Per stale group, update the dependents that need it (edit the README,
+   regenerate the file, fix the test). A dependent needing no change is fine —
+   the point is that you looked.
+4. Confirm: `outdatty update --group <id>`. Now `check` passes for it.
+
+A recorded dependent hash is a review watermark. After editing a dependent on
+its own, record just it: `outdatty update --group <id> --dependent <path>`. A
+whole-group update would also claim review of other pending dependent edits.
 
 ## Reading the output
 
-Plain output (default) is complete for a human or an agent eyeballing — failing
-groups list both the changed sources and the dependents to review:
+Plain output (default) is complete for a human or an agent — failing groups
+list both the changed sources and the dependents to review:
 
 ```
 [ stale ]  cli-docs
@@ -139,12 +140,11 @@ groups list both the changed sources and the dependents to review:
 ## Choosing a format
 
 - `plain` (default): the daily read, for humans and agents alike. Do not reach
-  for JSON just to see what drifted — plain already names the sources and the
-  dependents.
-- `json`: when you need to iterate programmatically over groups. Stable,
-  versioned envelope; each group carries `status`, `changed_sources`,
-  `changed_dependents`, and the full declared `dependents` (so you never have to
-  re-parse the manifest to find review targets):
+  for JSON just to see what drifted — plain names sources and dependents.
+- `json`: to iterate over groups programmatically. Stable, versioned envelope;
+  each group carries `status`, `changed_sources`, `changed_dependents` (pending
+  dependent edits, even when `ok`), and the full declared `dependents`, so you
+  never re-parse the manifest for review targets:
 
   ```json
   {
@@ -158,41 +158,34 @@ groups list both the changed sources and the dependents to review:
   }
   ```
 
-- `paths` / `paths0`: bare changed-source paths (all groups, sorted, deduped),
-  for piping into a diff or editor. `paths` is newline-delimited; `paths0` is
-  NUL-delimited — prefer `paths0 | xargs -0` so paths with spaces survive.
-  Empty when nothing drifted, so a clean repo pipes to nothing.
+- `paths` / `paths0`: bare changed-source paths (all groups, sorted, deduped)
+  for piping into a diff or editor; newline- or NUL-delimited — prefer
+  `paths0 | xargs -0` so paths with spaces survive. Empty when nothing drifted.
 - `quiet`: no output; rely on the exit code.
 
-`--format` applies to `check` too, and `check` still sets exit 1 on drift — so
+`check` keeps exit 1 on drift under any format, so
 `outdatty check --format=paths0 | xargs -0 -r ...` both prints paths and gates.
 
 ## Setting it up in a repo
 
 1. `outdatty init`, then edit `outdatty.yaml`: one group per coupling you care
-   about (source files → the docs/tests/generated files that must track them).
-2. `outdatty update` once to record the baseline lockfile. Commit both
-   `outdatty.yaml` and `outdatty.lock`.
+   about (sources → the docs/tests/generated files that must track them).
+2. `outdatty update` once to record the baseline. Commit both `outdatty.yaml`
+   and `outdatty.lock`.
 3. Gate CI with `outdatty check` (exit 1 fails the build on unreviewed drift).
-   In a `just`/make-based repo, add `outdatty check` to the existing check
-   target rather than hand-rolling a review recipe — the review workflow above
-   plus the built-in output is the portable substitute for a per-project
-   `outdatty-review` script.
+   In a `just`/make repo, add it to the existing check target; the loop above
+   plus the built-in output replaces a per-project `outdatty-review` script.
 
 ## Gotchas
 
-- A failing `check` does not mean a dependent is wrong. It means a source moved
-  and the group hasn't been re-confirmed. Review, fix if needed, then `update`.
-- outdatty is VCS-agnostic and diff-free by design. If you want a real
-  since-locked diff, that is not something outdatty produces — use the paths
-  output with your own tooling.
+- A failing `check` does not mean a dependent is wrong, only that a source
+  moved and the group is unconfirmed. Review, fix if needed, then `update`.
+- outdatty is VCS-agnostic and diff-free by design; for a real since-locked
+  diff, feed the paths output to your own tooling.
 - `new` groups fail `check` until the first `update` records their snapshot.
-- Scope with `--group` when confirming after a review, so you only re-hash what
-  you actually looked at.
-- A file that was locked and then deleted surfaces as drift (in
-  `changed_sources`), not an error — a missing literal path is logged as a
-  warning and treated as removed, so `check` fails rather than crashing.
-- `--format` is accepted everywhere but only shapes the read commands
-  (`check` / `status`). `init` honours only `quiet` (to silence its message),
-  `schema` always prints the schema, and `update` emits no `paths`/`paths0`
-  output.
+- Confirm only what you looked at: `--group` for the groups you reviewed,
+  `--dependent` for a dependent-only edit.
+- A locked file later deleted is drift (in `changed_sources`), not an error: a
+  missing literal path is warned about and treated as removed.
+- `--format` only shapes `check` / `status`. `init` honours only `quiet`,
+  `schema` always prints the schema, and `update` emits no `paths`/`paths0`.

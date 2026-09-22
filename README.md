@@ -62,8 +62,14 @@ outdatty update               # confirm: record current hashes into outdatty.loc
 outdatty check                # CI gate: exit 1 if a source changed without re-confirmation
 outdatty status               # show every group without failing
 outdatty update --group docs  # confirm only one group
+outdatty update --group docs --dependent README.md  # record one reviewed dependent
 outdatty schema               # print the manifest JSON schema
 ```
+
+`--dependent` (repeatable, needs `--group`) records only the named dependents'
+hashes, leaving the group's sources and other dependents as locked, so a
+dependent-only edit claims review of that file alone. A path the group does not
+declare is an error.
 
 Global flags: `--manifest <path>`, `--lock <path>`,
 `--format plain|json|quiet|paths|paths0`, `--color auto|always|never`. Plain

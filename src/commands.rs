@@ -11,6 +11,7 @@ use crate::engine::{self, Filter, Report};
 use crate::error::{Error, Result};
 use crate::lock::{self, Lockfile};
 use crate::manifest::{self, Manifest};
+use crate::record;
 use crate::report::{self, Format};
 
 /// Starter manifest written by [`init`].
@@ -161,17 +162,23 @@ pub fn status(config: &Config, groups: &[String]) -> Result<String> {
 }
 
 /// Refreshes the lockfile for the selected groups, returning the message to
-/// print.
+/// print. Non-empty `dependents` narrows the refresh to those paths within the
+/// named `groups` (see [`record::dependents`]).
 ///
 /// # Errors
 ///
-/// Returns an error if the manifest cannot be loaded, an artifact cannot be
-/// resolved or hashed, or the lockfile cannot be written.
-pub fn update(config: &Config, groups: &[String]) -> Result<String> {
+/// Returns an error if the manifest cannot be loaded, a named group or
+/// dependent is not declared, an artifact cannot be resolved or hashed, or the
+/// lockfile cannot be written.
+pub fn update(config: &Config, groups: &[String], dependents: &[String]) -> Result<String> {
     let ctx = config.context()?;
     let lock = Lockfile::load_or_default(&ctx.lock_path)?;
     let filter = make_filter(&ctx.manifest, groups)?;
-    let (next, report) = engine::build(&ctx.manifest, &lock, &ctx.base, &filter)?;
+    let (next, report) = if dependents.is_empty() {
+        engine::build(&ctx.manifest, &lock, &ctx.base, &filter)?
+    } else {
+        record::dependents(&ctx.manifest, &lock, &ctx.base, groups, dependents)?
+    };
     next.save(&ctx.lock_path)?;
     report::render_update(&report, config.format, config.color)
 }
@@ -299,7 +306,7 @@ mod tests {
             check(&config, &[]).expect("check").failed,
             "new group fails"
         );
-        update(&config, &[]).expect("update");
+        update(&config, &[], &[]).expect("update");
         assert!(
             !check(&config, &[]).expect("check").failed,
             "synced after update"
@@ -310,7 +317,7 @@ mod tests {
         assert!(stale.failed);
         assert!(stale.output.contains("source changed"));
 
-        update(&config, &["pair".to_owned()]).expect("scoped update");
+        update(&config, &["pair".to_owned()], &[]).expect("scoped update");
         assert!(!check(&config, &[]).expect("check").failed);
     }
 
@@ -318,7 +325,7 @@ mod tests {
     fn untracked_file_fails_check() {
         let dir = tempfile::tempdir().expect("tempdir");
         let config = project(dir.path());
-        update(&config, &[]).expect("update");
+        update(&config, &[], &[]).expect("update");
         assert!(
             !check(&config, &[]).expect("check").failed,
             "clean once every file is covered or exempt"
@@ -343,7 +350,7 @@ mod tests {
     fn status_never_marks_failure() {
         let dir = tempfile::tempdir().expect("tempdir");
         let config = project(dir.path());
-        update(&config, &[]).expect("update");
+        update(&config, &[], &[]).expect("update");
         write(dir.path(), "code.rs", "changed");
         let text = status(&config, &[]).expect("status");
         assert!(text.contains("stale"), "status still reports drift");

@@ -4,31 +4,32 @@ groups:
   cli-docs:
     source:
       flake.nix: 41f166435225d7ec61c20f46c99cf46d7b83eb245e35566b0491dc8bbcafb308
-      src/cli.rs: fb637c7aec8d3d939b77b55b913d9a0df678309ae04fd84572814c147a3f5ecc
-      src/commands.rs: 6842e9828e429aad16a49b6c611593db74e6c678e7b53f49cabf2c50f89ec143
+      src/cli.rs: 7ad1f4cd4666b53e944277f86cfe9b4f8576d8b4c5d956b28faea90595cbba25
+      src/commands.rs: 39adba834c75d86cfbd898a28a75de15757074ae7258cc8d10dd4ad63afc11f7
       src/report.rs: 05927cb10e190005c3eeadf213f7a0e1c3b842edf46e5387fc6418b0c6d4a418
     dependents:
-      README.md: 2b752e3512519196833661a16d8b00d1285b1b617f5f911e0a6e5ad0ac08236f
+      README.md: 9ae42e8788db8e2f79771142daf2a725c2024d069f30c5cf16301c9baf8a9935
       flake.lock: bd837dbc0495ca857a4daa534b0dad361be5b819b9e666491628bfb15a5aa768
-      skills/outdatty/SKILL.md: 421d49f9663611d53673899c93d369e1656e3a360b660f6d6f5ab89bbc245661
+      skills/outdatty/SKILL.md: 78c56f45eabcf029c938b92d85475752a17f70c3f6f85382c7721a2c61fa107f
       www/index.html: 0ff167143b59ec4f208e6ea55a21f9ad3c5d0c9fd1e1c480c106163cbfb19729
   code:
     source:
-      src/cli.rs: fb637c7aec8d3d939b77b55b913d9a0df678309ae04fd84572814c147a3f5ecc
-      src/commands.rs: 6842e9828e429aad16a49b6c611593db74e6c678e7b53f49cabf2c50f89ec143
+      src/cli.rs: 7ad1f4cd4666b53e944277f86cfe9b4f8576d8b4c5d956b28faea90595cbba25
+      src/commands.rs: 39adba834c75d86cfbd898a28a75de15757074ae7258cc8d10dd4ad63afc11f7
       src/coverage.rs: 4a0924fb868283303269052a407005570bf624e35e01e239910d125ce65c937d
       src/engine.rs: 98285b09263adc61e35b90486960c8c966326738a18632a6328d11ed88e55955
-      src/error.rs: 54af5c8d31dde6b9b9dc71657d9deda5e4ca1062be3c61cb19e79f508aa75020
+      src/error.rs: da1aa988c2643ed34df7718d0351cef9711a52b92d3a39b0559377a1ac293fff
       src/hashing.rs: 30a10a6999ffee5d12d669340cbacf347588ae1b68e340d257e6b5c603077710
-      src/lib.rs: eacf74264a46223404d35e84461ee5a7b0992bcd38cbbd097ff3251c3a50ea8b
+      src/lib.rs: 121ec45e8d1d03d8b31bae9c1afd14599c456e33c8f72c6f254e7db364c5f4fc
       src/lock.rs: b1af3ae68f6a3c40a7bcde6706d0951f609d628a04d2ee083f66641ea262e760
       src/main.rs: d40ff41e718c6e70a131ce4de30f391d5d040254febf85c9a3572b6676ed8700
       src/manifest.rs: 6c23ec20d1c3cb88c178d4ad1f0fe47c6f3ff2cb69f36ae4891d17bd2ce6f551
+      src/record.rs: e7e65c1f6ce923509521fa91fafb6b1469f2a6e016db4b1fc21c7232028ad4c3
       src/report.rs: 05927cb10e190005c3eeadf213f7a0e1c3b842edf46e5387fc6418b0c6d4a418
       src/resolve.rs: cd0e1a76bbc0592643c23c7c6bb29bc843e0b34e8db9c78d830290b23c26365d
       src/style.rs: 9c4a39bd262977371c30ef919720894545f0823f3bb3afee2caf8c7a89f1481f
     dependents:
-      tests/cli.rs: c97985039ef19474a33ea7f52b6d0947d5cee52694a154b0365d30c1090bbb4d
+      tests/cli.rs: 648a488326b1b1bb93fc9d2c976df4e98008409d786763c011de2883fd54e5b3
   dev-standards:
     source:
       .linecop.yaml: 5d369764be1c50647f60296a1b6ca731a800eba31c3da578d4126eb7e3706154
@@ -46,7 +47,7 @@ groups:
     source:
       Cargo.toml: 8c7231109f26ac2a3fa2bdb4a2e47c8f12cfee52f69a831bfa96f99f0e1dd5e1
     dependents:
-      CHANGELOG.md: 79584c3a1ba874d7da381c6673e68c9f029502e7da3b4f2d435995f339844975
+      CHANGELOG.md: 3e4cbd174b56bb2ae342944a2c74aeb53f8fb13f5dfa46202d480d0eacc63bb6
       Cargo.lock: 79132606f2e6c45bf8c0ea3082bec8ff7f709e80fc7b072415dbe330556c8085
   schema:
     source:

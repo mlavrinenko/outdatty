@@ -4,7 +4,11 @@
   title: "scope a watermark record to one dependent",
   priority: 4,
   difficulty: 3,
-  status: proposed(2026, 9, 22),
+  status: done(
+    2026,
+    9,
+    22,
+  )[commit 232d2b0; README + skill synced, selfcheck green],
 )
 
 = Problem

@@ -9,11 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `update --group <id> --dependent <path>` (repeatable) records only the named
-  dependents' hashes, leaving the group's sources and other pending dependents
-  as locked, so confirming one reviewed file no longer claims review of the
-  rest. A path the group does not declare, or a group never recorded, is an
-  error and writes nothing.
+- `update --group <id> --dependent <path>` (both repeatable) records only the
+  named dependents' hashes, leaving the group's sources and other pending
+  dependents as locked, so confirming one reviewed file no longer claims review
+  of the rest. Each path is recorded in whichever named groups declare it, and
+  plain output lists it under the group as `recorded dependent:` (JSON: a
+  `recorded` array). A path no named group declares, or a group never recorded,
+  is an error and writes nothing.
 
 # [0.4.0] - 2026-07-04
 

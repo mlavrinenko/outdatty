@@ -67,9 +67,9 @@ outdatty schema               # print the manifest JSON schema
 ```
 
 `--dependent` (repeatable, needs `--group`) records only the named dependents'
-hashes, leaving the group's sources and other dependents as locked, so a
-dependent-only edit claims review of that file alone. A path the group does not
-declare is an error.
+hashes, leaving the groups' sources and other dependents as locked, so a
+dependent-only edit claims review of that file alone. Each path is recorded in
+whichever named groups declare it; a path none of them declares is an error.
 
 Global flags: `--manifest <path>`, `--lock <path>`,
 `--format plain|json|quiet|paths|paths0`, `--color auto|always|never`. Plain

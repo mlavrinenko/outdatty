@@ -42,8 +42,8 @@ your own diff tool (see the review-before-update loop).
 - `outdatty update [--group ID]... [--dependent PATH]...` — re-hash the selected
   groups into the lockfile, confirming the current state. Unscoped, it also
   prunes entries whose group left the manifest. `--dependent` (needs `--group`)
-  records only that dependent's hash, leaving the group's sources and other
-  dependents as locked; a path the group does not declare is an error.
+  records only that dependent's hash, in whichever named groups declare it,
+  leaving sources and other dependents as locked; a path none declares errors.
 - `outdatty schema` — print the manifest's JSON schema.
 
 Global flags (all subcommands): `--manifest <path>`, `--lock <path>`,

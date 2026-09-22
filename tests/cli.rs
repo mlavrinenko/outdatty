@@ -247,7 +247,7 @@ fn update_dependent_refuses_an_undeclared_path() {
         .args(["--dependent", "typo.md"])
         .assert()
         .code(2)
-        .stderr(contains("typo.md").and(contains("g")));
+        .stderr(contains("no dependent typo.md in group(s) g"));
     let after = std::fs::read_to_string(dir.path().join("outdatty.lock")).expect("lock");
     assert_eq!(before, after, "a refused update writes nothing");
 }

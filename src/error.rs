@@ -97,12 +97,12 @@ pub enum Error {
     #[error("no such group: {0}")]
     UnknownGroup(String),
 
-    /// A `--dependent` path is not among the named group's dependents.
-    #[error("group {group} declares no dependent {path}")]
+    /// A `--dependent` path is declared by none of the named groups.
+    #[error("no dependent {path} in group(s) {}", groups.join(", "))]
     UnknownDependent {
-        /// The group that was searched.
-        group: String,
-        /// The path it does not declare.
+        /// The groups that were searched.
+        groups: Vec<String>,
+        /// The path none of them declares.
         path: String,
     },
 
@@ -133,12 +133,12 @@ mod tests {
         let empty = Error::EmptyGroupSource("pair".to_owned());
         assert!(empty.to_string().contains("empty `source`"));
         let stray = Error::UnknownDependent {
-            group: "pair".to_owned(),
+            groups: vec!["pair".to_owned(), "docs".to_owned()],
             path: "typo.md".to_owned(),
         };
         assert_eq!(
             stray.to_string(),
-            "group pair declares no dependent typo.md"
+            "no dependent typo.md in group(s) pair, docs"
         );
         let fresh = Error::UnrecordedGroup("pair".to_owned());
         assert!(fresh.to_string().contains("outdatty update --group pair"));

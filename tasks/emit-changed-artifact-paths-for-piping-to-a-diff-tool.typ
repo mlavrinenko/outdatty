@@ -5,7 +5,7 @@
   priority: 5,
   difficulty: 4,
   status: done(2026, 7, 2)[commit 8e76504; paths + paths0, docs synced],
-  depends-on: (link("report-declared-dependents-in-plain-and-json.typ"),),
+  links: depends-on("report-declared-dependents-in-plain-and-json.typ"),
 )
 
 = Problem

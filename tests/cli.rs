@@ -84,7 +84,7 @@ fn full_lifecycle_update_check_drift_resync() {
         .arg("check")
         .assert()
         .success()
-        .stdout(contains("none out of date"));
+        .stdout("outdatty: 1 group up to date\n");
 
     write(dir.path(), "code.rs", "changed");
     bin()
@@ -262,4 +262,67 @@ fn update_dependent_requires_a_group() {
         .assert()
         .code(2)
         .stderr(contains("--group"));
+}
+
+/// Writes a manifest of two groups, `pair` and `other`, records it, then
+/// edits `code.rs` so `pair` goes stale while `other` stays ok.
+fn one_of_two_stale(dir: &Path) {
+    write(
+        dir,
+        "outdatty.yaml",
+        "groups:\n  - name: pair\n    source: [code.rs]\n    dependents: [doc.md]\n  - name: other\n    source: [lib.rs]\n    dependents: [guide.md]\n",
+    );
+    for name in ["code.rs", "doc.md", "lib.rs", "guide.md"] {
+        write(dir, name, "a");
+    }
+    bin().current_dir(dir).arg("update").assert().success();
+    write(dir, "code.rs", "changed");
+}
+
+#[test]
+fn plain_check_prints_only_failing_groups_then_one_summary() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    one_of_two_stale(dir.path());
+    let out = bin()
+        .current_dir(&dir)
+        .args(["check", "--color", "never"])
+        .assert()
+        .code(1)
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(out).expect("utf8");
+    assert_eq!(
+        text,
+        "[ stale ]  pair\n    source changed:    code.rs\n    review dependent:  doc.md\n    confirm with:      outdatty update --group pair\n\noutdatty: 1 of 2 groups out of date\n"
+    );
+}
+
+#[test]
+fn plain_check_prints_one_line_when_every_group_passes() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    one_of_two_stale(dir.path());
+    bin().current_dir(&dir).arg("update").assert().success();
+    bin()
+        .current_dir(&dir)
+        .args(["check", "--color", "never"])
+        .assert()
+        .success()
+        .stdout("outdatty: 2 groups up to date\n");
+}
+
+#[test]
+fn plain_status_still_lists_every_group() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    one_of_two_stale(dir.path());
+    bin()
+        .current_dir(&dir)
+        .args(["status", "--color", "never"])
+        .assert()
+        .success()
+        .stdout(
+            contains("[  ok   ]  other")
+                .and(contains("[ stale ]  pair"))
+                .and(contains("outdatty: 1 of 2 groups out of date")),
+        );
 }

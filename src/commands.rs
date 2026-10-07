@@ -12,7 +12,7 @@ use crate::error::{Error, Result};
 use crate::lock::{self, Lockfile};
 use crate::manifest::{self, Manifest};
 use crate::record;
-use crate::report::{self, Format};
+use crate::report::{self, Format, Listing};
 
 /// Starter manifest written by [`init`].
 const TEMPLATE: &str = r"# yaml-language-server: $schema=https://raw.githubusercontent.com/mlavrinenko/outdatty/main/schema/outdatty.schema.json
@@ -143,7 +143,7 @@ fn exempt_paths(ctx: &Context) -> Vec<String> {
 /// resolved, hashed, or rendered.
 pub fn check(config: &Config, groups: &[String]) -> Result<Outcome> {
     let report = evaluate(config, groups)?;
-    let output = report::render_report(&report, config.format, config.color)?;
+    let output = report::render_report(&report, config.format, config.color, Listing::Failing)?;
     Ok(Outcome {
         output,
         failed: report.has_failure(),
@@ -158,7 +158,7 @@ pub fn check(config: &Config, groups: &[String]) -> Result<Outcome> {
 /// resolved, hashed, or rendered.
 pub fn status(config: &Config, groups: &[String]) -> Result<String> {
     let report = evaluate(config, groups)?;
-    report::render_report(&report, config.format, config.color)
+    report::render_report(&report, config.format, config.color, Listing::All)
 }
 
 /// Refreshes the lockfile for the selected groups, returning the message to

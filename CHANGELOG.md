@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Plain `check` lists only the failing groups and untracked files, so one stale
+  group no longer hides among `[  ok   ]` lines; a passing run prints one line.
+  The summary reads `outdatty: 1 of 20 groups out of date, 2 untracked files`
+  or `outdatty: 20 groups up to date`, and no longer suggests a blanket
+  `outdatty update`, since each failing group names its own confirming command.
+  `status` still lists every group.
+
 ## [0.6.0] - 2026-10-07
 
 ### Added

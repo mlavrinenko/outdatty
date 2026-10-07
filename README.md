@@ -66,6 +66,18 @@ outdatty update --group docs --dependent README.md  # record one reviewed depend
 outdatty schema               # print the manifest JSON schema
 ```
 
+Plain `check` prints only what failed, then one summary line; a passing run
+prints `outdatty: 5 groups up to date`:
+
+```
+[ stale ]  cli-docs
+    source changed:    src/report.rs
+    review dependent:  README.md
+    confirm with:      outdatty update --group cli-docs
+
+outdatty: 1 of 5 groups out of date
+```
+
 `--dependent` (repeatable, needs `--group`) records only the named dependents'
 hashes, leaving the groups' sources and other dependents as locked, so a
 dependent-only edit claims review of that file alone. Each path is recorded in

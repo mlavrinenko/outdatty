@@ -27,6 +27,25 @@ pub enum Format {
     Paths0,
 }
 
+/// Which groups plain output lists. Other formats ignore it: JSON always
+/// carries every group, and the path formats list only drift anyway.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Listing {
+    /// Only the groups that fail, as `check` prints them.
+    Failing,
+    /// Every group, as `status` prints them.
+    All,
+}
+
+impl Listing {
+    fn shows(self, group: &GroupReport) -> bool {
+        match self {
+            Listing::Failing => group.status.is_failure(),
+            Listing::All => true,
+        }
+    }
+}
+
 /// Machine-readable view of an evaluation report, carrying an explicit failure
 /// signal and counts so consumers need not parse the process exit code.
 #[derive(Serialize)]
@@ -78,17 +97,22 @@ impl<'a> UpdateView<'a> {
 
 /// Renders an evaluation [`Report`] in the requested `format`.
 ///
-/// `color` only affects [`Format::Plain`]; JSON and quiet output are never
-/// styled so they stay machine-parseable.
+/// `color` and `listing` only affect [`Format::Plain`]; JSON and quiet output
+/// are never styled so they stay machine-parseable.
 ///
 /// # Errors
 ///
 /// Returns [`crate::error::Error::Json`] if JSON serialization fails.
-pub fn render_report(report: &Report, format: Format, color: bool) -> Result<String> {
+pub fn render_report(
+    report: &Report,
+    format: Format,
+    color: bool,
+    listing: Listing,
+) -> Result<String> {
     match format {
         Format::Quiet => Ok(String::new()),
         Format::Json => Ok(to_json(&ReportView::new(report))?),
-        Format::Plain => Ok(render_report_plain(report, Styler::new(color))),
+        Format::Plain => Ok(render_report_plain(report, Styler::new(color), listing)),
         Format::Paths => Ok(render_paths(report, '\n')),
         Format::Paths0 => Ok(render_paths(report, '\0')),
     }
@@ -128,12 +152,12 @@ fn to_json<T: Serialize>(value: &T) -> Result<String> {
     Ok(text)
 }
 
-fn render_report_plain(report: &Report, styler: Styler) -> String {
+fn render_report_plain(report: &Report, styler: Styler, listing: Listing) -> String {
     if report.groups.is_empty() && report.untracked.is_empty() {
         return "no groups defined\n".to_owned();
     }
     let mut out = String::new();
-    for group in &report.groups {
+    for group in report.groups.iter().filter(|group| listing.shows(group)) {
         push_group_line(&mut out, group, styler);
     }
     out.push_str(&coverage::render_plain(&report.untracked, styler));
@@ -143,7 +167,9 @@ fn render_report_plain(report: &Report, styler: Styler) -> String {
         .iter()
         .filter(|group| group.status.is_failure())
         .count();
-    out.push('\n');
+    if !out.is_empty() {
+        out.push('\n');
+    }
     out.push_str(&summary_line(
         styler,
         total,
@@ -154,21 +180,32 @@ fn render_report_plain(report: &Report, styler: Styler) -> String {
     out
 }
 
+/// The line closing every plain report: `outdatty: 1 of 20 groups out of date,
+/// 2 untracked files`, or `outdatty: 20 groups up to date`.
 fn summary_line(styler: Styler, total: usize, failures: usize, untracked: usize) -> String {
     if failures == 0 && untracked == 0 {
-        return styler.green(&format!("{total} group(s) checked, none out of date"));
+        return styler.green(&format!("outdatty: {} up to date", counted(total, "group")));
     }
     let mut parts = Vec::new();
     if failures > 0 {
-        parts.push(format!("{failures} of {total} group(s) out of date"));
+        parts.push(format!(
+            "{failures} of {} out of date",
+            counted(total, "group")
+        ));
     }
     if untracked > 0 {
-        parts.push(format!("{untracked} untracked file(s)"));
+        parts.push(counted(untracked, "untracked file"));
     }
-    styler.red(&format!(
-        "{}; review and run `outdatty update`",
-        parts.join("; ")
-    ))
+    styler.red(&format!("outdatty: {}", parts.join(", ")))
+}
+
+/// `count` and `noun`, with `noun` pluralized unless `count` is one.
+fn counted(count: usize, noun: &str) -> String {
+    if count == 1 {
+        format!("{count} {noun}")
+    } else {
+        format!("{count} {noun}s")
+    }
 }
 
 fn push_group_line(out: &mut String, group: &GroupReport, styler: Styler) {

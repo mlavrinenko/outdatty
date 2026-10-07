@@ -54,7 +54,7 @@ fn plain_check_names_the_file_and_the_recording_command() {
         .stdout(
             contains("unrecorded: docs/new.md")
                 .and(contains(format!("record it: {RECORD_IT}")))
-                .and(contains("1 of 1 group(s) out of date")),
+                .and(contains("outdatty: 1 of 1 group out of date")),
         );
 }
 

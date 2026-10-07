@@ -124,8 +124,9 @@ whole-group update would also claim review of other pending dependent edits.
 
 ## Reading the output
 
-Plain output (default) is complete for a human or an agent — failing groups
-list both the changed sources and the dependents to review:
+Plain output (default) is complete for a human or an agent. `check` lists only
+the failing groups, each with its changed sources, the dependents to review and
+the command that confirms it, then one summary line:
 
 ```
 [ stale ]  cli-docs
@@ -134,8 +135,11 @@ list both the changed sources and the dependents to review:
     review dependent:  www/index.html
     confirm with:      outdatty update --group cli-docs
 
-1 of 1 group(s) out of date; review and run `outdatty update`
+outdatty: 1 of 5 groups out of date
 ```
+
+A passing `check` prints only `outdatty: 5 groups up to date`. `status` lists
+every group, passing ones as `[  ok   ]  <id>`.
 
 ## Choosing a format
 

@@ -288,22 +288,14 @@
     <span class="dim">review dependent:  docs/feature.mdx</span>
     <span class="dim">review dependent:  tests/feature.rs</span>
     <span class="dim">confirm with:      outdatty update --group feature</span>
-<span class="ok">[  ok   ]</span>  guide
-<span class="ok">[  ok   ]</span>  api
-<span class="ok">[  ok   ]</span>  schema
 
-<span class="ko">1 of 4 group(s) out of date; review and run `outdatty update`</span>  <span class="dim">(exit 1)</span>
+<span class="ko">outdatty: 1 of 4 groups out of date</span>  <span class="dim">(exit 1)</span>
 
 <span class="prompt">$</span> <span class="cmd">outdatty update --group feature</span>
 updated  feature
 
 <span class="prompt">$</span> <span class="cmd">outdatty check</span>
-<span class="ok">[  ok   ]</span>  feature
-<span class="ok">[  ok   ]</span>  guide
-<span class="ok">[  ok   ]</span>  api
-<span class="ok">[  ok   ]</span>  schema
-
-<span class="ok">4 group(s) checked, none out of date</span>  <span class="dim">(exit 0)</span></pre>
+<span class="ok">outdatty: 4 groups up to date</span>  <span class="dim">(exit 0)</span></pre>
         </div>
       </div>
     </section>

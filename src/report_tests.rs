@@ -15,6 +15,7 @@ fn sample_report() -> Report {
             status: Status::Ok,
             changed_sources: Vec::new(),
             changed_dependents: Vec::new(),
+            unrecorded_dependents: Vec::new(),
             dependents: vec!["doc.md".to_owned()],
         },
         GroupReport {
@@ -22,6 +23,7 @@ fn sample_report() -> Report {
             status: Status::Stale,
             changed_sources: vec!["code.rs".to_owned()],
             changed_dependents: Vec::new(),
+            unrecorded_dependents: Vec::new(),
             dependents: vec!["doc.md".to_owned()],
         },
     ])
@@ -54,6 +56,7 @@ fn plain_omits_review_dependent_for_ok_groups() {
         status: Status::Ok,
         changed_sources: Vec::new(),
         changed_dependents: Vec::new(),
+        unrecorded_dependents: Vec::new(),
         dependents: vec!["doc.md".to_owned()],
     }]);
     let text = render_report(&report, Format::Plain, false).expect("render");
@@ -83,6 +86,7 @@ fn plain_omits_dependent_only_changes() {
         status: Status::Ok,
         changed_sources: Vec::new(),
         changed_dependents: vec!["doc.md".to_owned()],
+        unrecorded_dependents: Vec::new(),
         dependents: vec!["doc.md".to_owned()],
     }]);
     let text = render_report(&report, Format::Plain, false).expect("render");
@@ -167,6 +171,7 @@ fn paths_lists_changed_sources_sorted_and_deduped() {
             status: Status::Stale,
             changed_sources: vec!["src/z.rs".to_owned(), "src/a.rs".to_owned()],
             changed_dependents: Vec::new(),
+            unrecorded_dependents: Vec::new(),
             dependents: vec!["doc.md".to_owned()],
         },
         GroupReport {
@@ -174,6 +179,7 @@ fn paths_lists_changed_sources_sorted_and_deduped() {
             status: Status::Stale,
             changed_sources: vec!["src/a.rs".to_owned()],
             changed_dependents: Vec::new(),
+            unrecorded_dependents: Vec::new(),
             dependents: vec!["doc.md".to_owned()],
         },
     ]);
@@ -195,6 +201,7 @@ fn paths_is_empty_for_clean_report() {
         status: Status::Ok,
         changed_sources: Vec::new(),
         changed_dependents: Vec::new(),
+        unrecorded_dependents: Vec::new(),
         dependents: vec!["doc.md".to_owned()],
     }]);
     let text = render_report(&clean, Format::Paths, false).expect("render");
@@ -209,6 +216,7 @@ fn paths0_is_nul_separated_without_trailing_newline() {
             status: Status::Stale,
             changed_sources: vec!["src/z.rs".to_owned()],
             changed_dependents: Vec::new(),
+            unrecorded_dependents: Vec::new(),
             dependents: vec!["doc.md".to_owned()],
         },
         GroupReport {
@@ -216,6 +224,7 @@ fn paths0_is_nul_separated_without_trailing_newline() {
             status: Status::Stale,
             changed_sources: vec!["src/a.rs".to_owned()],
             changed_dependents: Vec::new(),
+            unrecorded_dependents: Vec::new(),
             dependents: vec!["doc.md".to_owned()],
         },
     ]);

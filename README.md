@@ -82,7 +82,7 @@ lockfile). A missing lockfile is not an operational error: `check` treats every
 group as new and exits `1`, so run `outdatty update` to create it.
 
 `--format=paths` (newline-delimited) and `--format=paths0` (NUL-delimited)
-print just the deduped, sorted changed-source paths — no labels, no summary —
+print just the deduped, sorted changed-source and unrecorded-dependent paths — no labels, no summary —
 so you can pipe the drift straight into your own diff or editor. outdatty
 stores hashes, not diffs, so it hands you the path set and you pick the tool:
 
@@ -105,7 +105,16 @@ groups:
 
 See [examples/outdatty.yaml](examples/outdatty.yaml). A path that disappears —
 a deleted literal, or a glob that no longer matches a previously locked file —
-counts as a change to confirm. Glob expansion skips files ignored by git — the
+counts as a change to confirm. A file a dependent glob newly
+expands to, with no hash in the lockfile, fails `check` as `unrecorded` and
+names the command that records it:
+
+```
+[ unrec ]  cli-docs
+    unrecorded: www/content/cli/add.typ
+      record it: outdatty update --group cli-docs --dependent www/content/cli/add.typ
+```
+ Glob expansion skips files ignored by git — the
 `.gitignore` files (root and nested), the global excludes, and
 `.git/info/exclude` — so build output never enters a group; set
 `gitignore: false` at the top of the manifest to match every file. The `.git`

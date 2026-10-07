@@ -42,13 +42,16 @@ pub enum Status {
     Stale,
     /// The group has no confirmed snapshot yet.
     New,
+    /// A directed group whose dependents glob expands to a file the lockfile
+    /// holds no hash for, so nothing watches it until it is recorded.
+    Unrecorded,
 }
 
 impl Status {
     /// Returns true if this status should fail a `check`.
     #[must_use]
     pub fn is_failure(self) -> bool {
-        matches!(self, Status::Stale | Status::New)
+        matches!(self, Status::Stale | Status::New | Status::Unrecorded)
     }
 }
 
@@ -63,6 +66,9 @@ pub struct GroupReport {
     pub changed_sources: Vec<String>,
     /// Dependent paths whose content differs from the snapshot.
     pub changed_dependents: Vec<String>,
+    /// Dependent paths the group declares today that the lockfile has no hash
+    /// for; each needs `update --dependent` to be recorded.
+    pub unrecorded_dependents: Vec<String>,
     /// The group's full declared dependents; review targets for a human when
     /// the group fails.
     pub dependents: Vec<String>,
@@ -138,6 +144,18 @@ fn diff(current: &BTreeMap<String, String>, locked: &BTreeMap<String, String>) -
     changed
 }
 
+/// Returns the sorted keys of `current` that `locked` holds no hash for.
+fn unrecorded(
+    current: &BTreeMap<String, String>,
+    locked: &BTreeMap<String, String>,
+) -> Vec<String> {
+    current
+        .keys()
+        .filter(|key| !locked.contains_key(*key))
+        .cloned()
+        .collect()
+}
+
 fn classify(bidirectional: bool, source_changed: bool, dependent_changed: bool) -> Status {
     if source_changed || (bidirectional && dependent_changed) {
         Status::Stale
@@ -160,21 +178,27 @@ fn evaluate_group(
             status: Status::New,
             changed_sources: Vec::new(),
             changed_dependents: Vec::new(),
+            unrecorded_dependents: Vec::new(),
             dependents: group.dependents.clone(),
         });
     };
     let changed_sources = diff(&current.source, &locked.source);
     let changed_dependents = diff(&current.dependents, &locked.dependents);
-    let status = classify(
+    let unrecorded_dependents = unrecorded(&current.dependents, &locked.dependents);
+    let mut status = classify(
         group.bidirectional,
         !changed_sources.is_empty(),
         !changed_dependents.is_empty(),
     );
+    if status == Status::Ok && !unrecorded_dependents.is_empty() {
+        status = Status::Unrecorded;
+    }
     Ok(GroupReport {
         id,
         status,
         changed_sources,
         changed_dependents,
+        unrecorded_dependents,
         dependents: group.dependents.clone(),
     })
 }

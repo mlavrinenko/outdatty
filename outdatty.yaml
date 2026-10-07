@@ -48,6 +48,7 @@ groups:
       - src/**/*.rs
     dependents:
       - tests/cli.rs
+      - tests/unrecorded.rs
 
   # Dev tooling and standards; a change should be reflected in the contributor
   # guide and the CI that enforces it.

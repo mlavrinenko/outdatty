@@ -94,15 +94,21 @@ pub fn render_report(report: &Report, format: Format, color: bool) -> Result<Str
     }
 }
 
-/// Renders the deduped, sorted set of changed source paths across every
-/// group, each followed by `delimiter` (including after the last path).
+/// Renders the deduped, sorted set of changed source paths and unrecorded
+/// dependent paths across every group, each followed by `delimiter`
+/// (including after the last path).
 /// Never colored and carries no status labels or summary line, so it pipes
 /// directly into an external diff tool.
 fn render_paths(report: &Report, delimiter: char) -> String {
     let mut paths: Vec<&str> = report
         .groups
         .iter()
-        .flat_map(|group| group.changed_sources.iter())
+        .flat_map(|group| {
+            group
+                .changed_sources
+                .iter()
+                .chain(group.unrecorded_dependents.iter())
+        })
         .map(String::as_str)
         .collect();
     paths.sort_unstable();
@@ -175,7 +181,16 @@ fn push_group_line(out: &mut String, group: &GroupReport, styler: Styler) {
         out.push_str(&styler.dim(&format!("    source changed:    {path}")));
         out.push('\n');
     }
-    if group.status.is_failure() {
+    for path in &group.unrecorded_dependents {
+        out.push_str(&styler.dim(&format!("    unrecorded: {path}")));
+        out.push('\n');
+        out.push_str(&styler.dim(&format!(
+            "      record it: outdatty update --group {} --dependent {path}",
+            group.id
+        )));
+        out.push('\n');
+    }
+    if matches!(group.status, Status::Stale | Status::New) {
         for path in &group.dependents {
             out.push_str(&styler.dim(&format!("    review dependent:  {path}")));
             out.push('\n');
@@ -193,6 +208,7 @@ fn status_label(styler: Styler, status: Status) -> String {
         Status::Ok => styler.green("[  ok   ]"),
         Status::Stale => styler.red("[ stale ]"),
         Status::New => styler.red("[  new  ]"),
+        Status::Unrecorded => styler.red("[ unrec ]"),
     }
 }
 

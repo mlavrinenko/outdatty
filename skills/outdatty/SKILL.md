@@ -153,12 +153,14 @@ list both the changed sources and the dependents to review:
       { "id": "cli-docs", "status": "stale",
         "changed_sources": ["src/report.rs"],
         "changed_dependents": [],
+        "unrecorded_dependents": [],
         "dependents": ["README.md", "www/index.html"] }
     ]
   }
   ```
 
-- `paths` / `paths0`: bare changed-source paths (all groups, sorted, deduped)
+- `paths` / `paths0`: bare changed-source and unrecorded-dependent paths
+  (all groups, sorted, deduped)
   for piping into a diff or editor; newline- or NUL-delimited — prefer
   `paths0 | xargs -0` so paths with spaces survive. Empty when nothing drifted.
 - `quiet`: no output; rely on the exit code.

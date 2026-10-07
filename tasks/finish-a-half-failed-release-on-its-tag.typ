@@ -4,7 +4,7 @@
   title: "finish a half-failed release on its tag",
   priority: 7,
   difficulty: 2,
-  status: proposed(2026, 10, 7),
+  status: done(2026, 10, 7)[run 37673009673 published nothing and gave v0.6.0 its five binaries; v0.7.0 stays Latest],
 )
 
 = Problem

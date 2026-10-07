@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-07
+
 ### Changed
 
 - Plain `check` lists only the failing groups and untracked files, so one stale
@@ -126,7 +128,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with a newline.
 - `update` reports pruned orphan lockfile entries with a `removed` action.
 
-[Unreleased]: https://github.com/mlavrinenko/outdatty/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/mlavrinenko/outdatty/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/mlavrinenko/outdatty/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/mlavrinenko/outdatty/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/mlavrinenko/outdatty/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/mlavrinenko/outdatty/compare/v0.3.0...v0.4.0

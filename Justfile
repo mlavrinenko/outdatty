@@ -98,15 +98,15 @@ release VERSION *FLAGS:
     done
     [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] \
         || refuse "'$version' is not a semver version" "give it without the v: just release 1.2.3"
+    cargo_version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+    [ "$version" = "$cargo_version" ] \
+        || refuse "requested $tag but Cargo.toml is $cargo_version" "bump Cargo.toml to $version and commit it first"
     for tool in git cargo curl gh; do
         command -v "$tool" >/dev/null \
             || refuse "$tool is not on PATH" "run inside the dev shell, with gh authenticated (gh auth login)"
     done
-    workflow=$(basename "$(ls .github/workflows/release*.yml | head -1)")
     crate=$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -1)
-    cargo_version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
-    [ "$version" = "$cargo_version" ] \
-        || refuse "requested $tag but Cargo.toml is $cargo_version" "bump Cargo.toml to $version and commit it first"
+    workflow=$(basename "$(ls .github/workflows/release*.yml | head -1)")
     [ -z "$(git status --porcelain)" ] \
         || refuse "the working tree has uncommitted changes" "commit or discard them, then re-run"
     branch=$(git symbolic-ref --short -q HEAD || true)

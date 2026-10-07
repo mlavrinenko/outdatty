@@ -4,7 +4,7 @@
   title: "push main, wait for its CI, then tag",
   priority: 6,
   difficulty: 2,
-  status: wip(2026, 10, 7),
+  status: done(2026, 10, 7)[adopted cratemplate's push-wait-tag recipe],
 )
 
 = Problem

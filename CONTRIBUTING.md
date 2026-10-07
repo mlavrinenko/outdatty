@@ -68,9 +68,10 @@ issue tracker, this section will define how to reference it.
 
 ## Releasing
 
-Bump `version` in `Cargo.toml`, give it a dated `CHANGELOG.md` section, commit,
-push main and wait for CI. Then run `just release X.Y.Z --dry-run`, and
-`just release X.Y.Z` once it passes. The tag push is the only publish path:
+Bump `version` in `Cargo.toml`, give it a dated `CHANGELOG.md` section and
+commit; don't push. Run `just release X.Y.Z --dry-run`, then `just release
+X.Y.Z` once it passes: it pushes main, waits for the `ci.yml` run on that
+commit, and tags only if the run is green. The tag push is the only publish path:
 never `cargo publish` by hand. A release whose workflow failed is finished on
 the same tag with `gh workflow run release.yml -f tag=vX.Y.Z`; a pushed tag never
 moves.

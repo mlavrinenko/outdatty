@@ -6,18 +6,18 @@ groups:
       flake.nix: 41f166435225d7ec61c20f46c99cf46d7b83eb245e35566b0491dc8bbcafb308
       src/cli.rs: 7ad1f4cd4666b53e944277f86cfe9b4f8576d8b4c5d956b28faea90595cbba25
       src/commands.rs: 39adba834c75d86cfbd898a28a75de15757074ae7258cc8d10dd4ad63afc11f7
-      src/report.rs: 5dc723a1fc0ecfcebb6c80f51fce2c38e4b51b2431bf5b3f3108a7b024b6fbb2
+      src/report.rs: e2ead8f799a8c0d5d4bc78c45fe20ac20b73c2e514caa1b6b02cba6e5661f341
     dependents:
-      README.md: 543ae14e7dad63bd239149dc1e80a9b0d473e1ca1de13119227184c103e42a91
+      README.md: 791f46863318891c1ade32dc579a8f5bbbfe1747fd8aa0ec86f18bfde1b11ddb
       flake.lock: bd837dbc0495ca857a4daa534b0dad361be5b819b9e666491628bfb15a5aa768
-      skills/outdatty/SKILL.md: 7ef9b32f8d04e3a8d1477b84be5fb55518da0ffb1fd0d3f72262f249c311ad3f
+      skills/outdatty/SKILL.md: 66c432418111e05d22c66195b99431547b7e47c55d7ce88d079eb9b38f8a3d56
       www/index.html: 0ff167143b59ec4f208e6ea55a21f9ad3c5d0c9fd1e1c480c106163cbfb19729
   code:
     source:
       src/cli.rs: 7ad1f4cd4666b53e944277f86cfe9b4f8576d8b4c5d956b28faea90595cbba25
       src/commands.rs: 39adba834c75d86cfbd898a28a75de15757074ae7258cc8d10dd4ad63afc11f7
       src/coverage.rs: 4a0924fb868283303269052a407005570bf624e35e01e239910d125ce65c937d
-      src/engine.rs: dbb4021f9c574b37e1c30d55e90c5aaef8b7528a797b5658d3f6c7872fbb0cac
+      src/engine.rs: ad9c69c943e0233377268665909226ed3970085e3454b6c6ef265c3ed06c497f
       src/engine_tests.rs: 5cc3a1d3f575dc76bbc07af47428f035922a4f1fc22b5e354d5c042afa859066
       src/error.rs: fc653d569321fe8e7d53fe551c48444ac8313d3a22f4bef9f48d8d3138e564a7
       src/hashing.rs: 30a10a6999ffee5d12d669340cbacf347588ae1b68e340d257e6b5c603077710
@@ -26,12 +26,13 @@ groups:
       src/main.rs: d40ff41e718c6e70a131ce4de30f391d5d040254febf85c9a3572b6676ed8700
       src/manifest.rs: 6c23ec20d1c3cb88c178d4ad1f0fe47c6f3ff2cb69f36ae4891d17bd2ce6f551
       src/record.rs: 4dfb0f4ef199c456c280e5ba95b4d9727f08caf822363762baa5b57c3f868d1a
-      src/report.rs: 5dc723a1fc0ecfcebb6c80f51fce2c38e4b51b2431bf5b3f3108a7b024b6fbb2
-      src/report_tests.rs: f560a565efe540b2684cdb13c375e1f53b971cf4f50a58df1e06706b8c117547
+      src/report.rs: e2ead8f799a8c0d5d4bc78c45fe20ac20b73c2e514caa1b6b02cba6e5661f341
+      src/report_tests.rs: 610a431c958caf76df152f98c86ae04fbd14179d19ba5754d57ed0f3c676db56
       src/resolve.rs: cd0e1a76bbc0592643c23c7c6bb29bc843e0b34e8db9c78d830290b23c26365d
       src/style.rs: 9c4a39bd262977371c30ef919720894545f0823f3bb3afee2caf8c7a89f1481f
     dependents:
       tests/cli.rs: 1dd635daca00b5323a407404e8564401a1b10a4923b30432231d001122bf108a
+      tests/unrecorded.rs: c0dcabfd7f3f45a8e62f31a901c2c80dc642e2f4a59847880f65e5622590c9bb
   dev-standards:
     source:
       .linecop.yaml: 5d369764be1c50647f60296a1b6ca731a800eba31c3da578d4126eb7e3706154
@@ -47,10 +48,10 @@ groups:
       CONTRIBUTING.md: 09b29d54b5fd2e1389c18f50f3c969fec12fae91e9d0a1b233d00b2a26fec611
   release-notes:
     source:
-      Cargo.toml: 01a9997e10d36403be8aba46ee5424491ab7311b8a3fcdd556ccb08330adfb62
+      Cargo.toml: 5e610b12a9ee6d68d8d7a1964295aad6625ac8e0b8a8c2f30fdf34fec4236895
     dependents:
-      CHANGELOG.md: 0730794d0d366f137294a9095cfb077184de14e4e1907fa2ecb0a7c1a56e5266
-      Cargo.lock: 20c5bb591efa881979c52341700150535c1df6af42854af063d5b157003b18fb
+      CHANGELOG.md: 6c10f73e2cc723e65e3d0d4d3d2242ad0072cd5f0f7b686f4d6c3e5c717af1f1
+      Cargo.lock: 4792ea04289e39445a59a46a6b809dbf3b65d01af8e751f1f07284e36cad2a18
   schema:
     source:
       src/manifest.rs: 6c23ec20d1c3cb88c178d4ad1f0fe47c6f3ff2cb69f36ae4891d17bd2ce6f551

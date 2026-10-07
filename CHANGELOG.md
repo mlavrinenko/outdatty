@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-07
+
+### Added
+
+- `check` now fails a directed group whose dependents glob expands to a file the
+  lockfile holds no hash for (a newly added page), which it used to ignore
+  forever. Plain output names the file and the command that records it
+  (`record it: outdatty update --group <id> --dependent <path>`); `status`
+  shows it without failing; JSON gains status `unrecorded` and a per-group
+  `unrecorded_dependents` array; `paths`/`paths0` include those files. A new
+  source file already failed as a changed source, and a group with no lock
+  entry stays `new`.
+
 ## [0.5.0] - 2026-09-22
 
 ### Added
@@ -104,7 +117,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with a newline.
 - `update` reports pruned orphan lockfile entries with a `removed` action.
 
-[Unreleased]: https://github.com/mlavrinenko/outdatty/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/mlavrinenko/outdatty/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/mlavrinenko/outdatty/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/mlavrinenko/outdatty/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/mlavrinenko/outdatty/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/mlavrinenko/outdatty/compare/v0.2.0...v0.3.0

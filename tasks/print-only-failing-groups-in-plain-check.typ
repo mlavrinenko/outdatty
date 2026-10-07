@@ -4,7 +4,7 @@
   title: "print only failing groups in plain check",
   priority: 5,
   difficulty: 2,
-  status: proposed(2026, 10, 7),
+  status: done(2026, 10, 7)[commit da80f26; README, site and skill synced],
 )
 
 = Problem

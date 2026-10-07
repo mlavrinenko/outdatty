@@ -65,3 +65,12 @@ issue tracker, this section will define how to reference it.
 1. Run `just check` before submitting — it runs clippy, tests, and file size checks
 2. Run `just fmt` to format code
 3. Ensure `just cover` meets the 70% threshold
+
+## Releasing
+
+Bump `version` in `Cargo.toml`, give it a dated `CHANGELOG.md` section, commit,
+push main and wait for CI. Then run `just release X.Y.Z --dry-run`, and
+`just release X.Y.Z` once it passes. The tag push is the only publish path:
+never `cargo publish` by hand. A release whose workflow failed is finished on
+the same tag with `gh workflow run release.yml -f tag=vX.Y.Z`; a pushed tag never
+moves.

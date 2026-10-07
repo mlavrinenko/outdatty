@@ -36,7 +36,7 @@ groups:
   dev-standards:
     source:
       .linecop.yaml: 5d369764be1c50647f60296a1b6ca731a800eba31c3da578d4126eb7e3706154
-      Justfile: cb97e6d00a9fcd9617cd3f29391ce75643a840ad8e2877e92eeccfc45cc9211e
+      Justfile: c8bbb033122250d9f36be36ee30b733f4e1e675455cdeb3e511fbf3d987418b4
       clippy.toml: 738d3b6cf1ba0d554b8211b6f7c3cc8bda8674e8e70bc10a119909db6e5ee9a6
       rust-toolchain.toml: 83dc105336fb6853b605a1ede887074543b7bc4c61dac41c8786fa784b62a1f1
       rustfmt.toml: 662d05a84401be3c6950df071a503437895252194e84f4f3c810a7084f110aa1
@@ -44,8 +44,8 @@ groups:
     dependents:
       .github/workflows/ci.yml: 24e80eb9b34206ad28e3242ddfcf67631d325a61e571c46545bdd4b325cd5e45
       .github/workflows/pages.yml: f92bea5316c48f1ffd51251162e72d264be2ba709320e0f4cfdb4fd7e3a2be96
-      .github/workflows/release.yml: 463cbaefca5db31888bd56e7def27bd5717ec007b4c107e958cc3ececbe52d26
-      CONTRIBUTING.md: 09b29d54b5fd2e1389c18f50f3c969fec12fae91e9d0a1b233d00b2a26fec611
+      .github/workflows/release.yml: 31bdd6f2bf858d1d1f0652c8445323f57308fe4b51ed3c8297bcfc73f2f591cf
+      CONTRIBUTING.md: fc111e41de78494a9142913ca6dc12a77eb5344f6badf9bc970828ab008398ce
   release-notes:
     source:
       Cargo.toml: c9029ce4cf90d5310dc8b87b1fc8990c1542ad601f6ab4292054da88cf03b697

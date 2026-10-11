@@ -3,7 +3,7 @@
 #show: task.with(
   title: "link the integration tests into one binary",
   priority: 5,
-  status: proposed(2026, 10, 11),
+  status: done(2026, 10, 11)[tests/it/main.rs links cli and unrecorded into one `it` executable, 104 tests unchanged],
 )
 
 = Problem

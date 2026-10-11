@@ -31,8 +31,9 @@ groups:
       src/resolve.rs: cd0e1a76bbc0592643c23c7c6bb29bc843e0b34e8db9c78d830290b23c26365d
       src/style.rs: 9c4a39bd262977371c30ef919720894545f0823f3bb3afee2caf8c7a89f1481f
     dependents:
-      tests/cli.rs: 23f54a1a5bcd7c94af4973791080bb3c68bf1d2a55d13d476188e673684af234
-      tests/unrecorded.rs: 928c83f73b11c73e6f525d545d58aa1fea5b0401360b79166e75b16ebd340b4b
+      tests/it/cli.rs: 23f54a1a5bcd7c94af4973791080bb3c68bf1d2a55d13d476188e673684af234
+      tests/it/main.rs: 0a31503d3a1367639ca19b0e5c305788fc82f49d3b47d5776a0444219b10d09e
+      tests/it/unrecorded.rs: 928c83f73b11c73e6f525d545d58aa1fea5b0401360b79166e75b16ebd340b4b
   dev-standards:
     source:
       .linecop.yaml: 5d369764be1c50647f60296a1b6ca731a800eba31c3da578d4126eb7e3706154

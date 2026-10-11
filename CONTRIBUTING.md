@@ -14,6 +14,26 @@ just cover     # code coverage (70% minimum)
 just fmt       # format code
 ```
 
+## Worktrees
+
+Work in parallel in a sibling worktree. `just fork` makes one and `just land`
+merges it back; both wrap [worktrunk](https://worktrunk.dev) (`wt`, from the
+dev shell) with the flags this repo needs, because a bare `wt merge` squashes
+the commits together and commits a dirty tree.
+
+```bash
+just fork <slug>           # a sibling worktree on a new branch, .envrc allowed
+just fork <slug> --base=@  # the same, from the current commit, not main
+just land                  # in the worktree: gate, fast-forward, remove
+```
+
+A worktree only gets commits, never your working tree, so commit first. Do not
+`git stash` in one: all worktrees share a single stash list.
+
+[.config/wt.toml](.config/wt.toml) holds the hooks, so a clone with nix and
+direnv needs no worktrunk config of its own. A new worktree runs `direnv allow`;
+before the fast-forward `just check` runs, and a red gate stops the merge.
+
 ## Code Style
 
 All clippy lints are set to `deny` level — the project will not compile with violations.

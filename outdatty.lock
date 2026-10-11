@@ -3,7 +3,7 @@ algorithm: blake3
 groups:
   cli-docs:
     source:
-      flake.nix: 41f166435225d7ec61c20f46c99cf46d7b83eb245e35566b0491dc8bbcafb308
+      flake.nix: 45ae4ba16581a92c53975f0e7963be4bb4a75437f93b8e2a75337858d9274b5d
       src/cli.rs: 7ad1f4cd4666b53e944277f86cfe9b4f8576d8b4c5d956b28faea90595cbba25
       src/commands.rs: 9d7b7fd1ef57b2d3bc018166412fa67628434ac70d97c9c3729e14e3b0224f40
       src/report.rs: 7a1463c57073ee4d27cca95bbe9391dcbe402d60e4f27d8b546b0de89556ab32
@@ -36,8 +36,9 @@ groups:
       tests/it/unrecorded.rs: 928c83f73b11c73e6f525d545d58aa1fea5b0401360b79166e75b16ebd340b4b
   dev-standards:
     source:
+      .config/wt.toml: c2feba86a9795a8e25f64fbd67a935b64e9b9e8c0c3536c84606a7635409f638
       .linecop.yaml: 5d369764be1c50647f60296a1b6ca731a800eba31c3da578d4126eb7e3706154
-      Justfile: 84a3c9d1f309286920d7bffdf51122e9dc5ff4339493028b7f1deb163d6d1b31
+      Justfile: b6b9a64b24ee86d82d6d0b8a1a86dee15cc9dd25d4acfa6f11dbfcb968b39512
       clippy.toml: 738d3b6cf1ba0d554b8211b6f7c3cc8bda8674e8e70bc10a119909db6e5ee9a6
       rust-toolchain.toml: 83dc105336fb6853b605a1ede887074543b7bc4c61dac41c8786fa784b62a1f1
       rustfmt.toml: 662d05a84401be3c6950df071a503437895252194e84f4f3c810a7084f110aa1
@@ -46,7 +47,7 @@ groups:
       .github/workflows/ci.yml: 24e80eb9b34206ad28e3242ddfcf67631d325a61e571c46545bdd4b325cd5e45
       .github/workflows/pages.yml: f92bea5316c48f1ffd51251162e72d264be2ba709320e0f4cfdb4fd7e3a2be96
       .github/workflows/release.yml: 31bdd6f2bf858d1d1f0652c8445323f57308fe4b51ed3c8297bcfc73f2f591cf
-      CONTRIBUTING.md: 1d82d49c53c7a82e62514d573e271d18f33bb3d70737e854e9884cd5ecac94aa
+      CONTRIBUTING.md: 0ccac2fbba4db9ba98ef786a9163f728b55c1556d0cb04ce6a16b863f9a37a8f
   release-notes:
     source:
       Cargo.toml: c9029ce4cf90d5310dc8b87b1fc8990c1542ad601f6ab4292054da88cf03b697

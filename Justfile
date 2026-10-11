@@ -173,3 +173,18 @@ release VERSION *FLAGS:
     git push --quiet origin "refs/tags/$tag" \
         || { git tag -d "$tag" >/dev/null; refuse "origin rejected the push of '$tag'" "re-run just release $version"; }
     echo "pushed '$tag'; follow it with: gh run list --workflow $workflow --limit 1"
+
+# Fork a sibling worktree on a new branch (`just fork <slug>`); extra flags go to
+# `wt switch`, e.g. `--base=@` to branch from HEAD, not main. The `pre-start`
+# hook in .config/wt.toml allows the new worktree's `.envrc`.
+[positional-arguments]
+fork SLUG *ARGS:
+    wt switch --create --yes "$@"
+
+# Gate, fast-forward the branch onto main and remove its worktree; run it in the
+# worktree. `--no-squash --no-commit` keeps every commit and refuses a dirty tree
+# instead of committing it; the `pre-merge` hook in .config/wt.toml runs
+# `just check` before the fast-forward.
+[positional-arguments]
+land *ARGS:
+    wt merge --no-squash --no-commit --yes "$@"

@@ -46,6 +46,7 @@
             clippy
             rustfmt
             just
+            worktrunk
             moreutils
             nixd
             rust-analyzer

@@ -3,7 +3,7 @@
 #show: task.with(
   title: "Fork and land worktrees with in-repo worktrunk hooks",
   priority: 4,
-  status: proposed(2026, 10, 11),
+  status: wip(2026, 10, 11),
 )
 
 = Problem

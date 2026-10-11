@@ -59,6 +59,7 @@ groups:
       - rust-toolchain.toml
       - tarpaulin.toml
       - .linecop.yaml
+      - .config/wt.toml
     dependents:
       - CONTRIBUTING.md
       - .github/workflows/*.yml

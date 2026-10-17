@@ -167,7 +167,9 @@ every group, passing ones as `[  ok   ]  <id>`.
   (all groups, sorted, deduped)
   for piping into a diff or editor; newline- or NUL-delimited — prefer
   `paths0 | xargs -0` so paths with spaces survive. Empty when nothing drifted.
-- `quiet`: no output; rely on the exit code.
+- `quiet`: no output on a pass; rely on the exit code. A failing `check`
+  prints its plain failure lines and summary to stderr, so a gate that runs
+  it still names the failing groups. `status`, `init` and `update` stay silent.
 
 `check` keeps exit 1 on drift under any format, so
 `outdatty check --format=paths0 | xargs -0 -r ...` both prints paths and gates.

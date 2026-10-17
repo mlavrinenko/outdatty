@@ -104,6 +104,7 @@ impl Cli {
             Command::Check { groups } => {
                 let outcome = commands::check(&config, groups)?;
                 print_output(&outcome.output);
+                eprint!("{}", outcome.diagnostics);
                 Ok(exit_code(outcome.failed))
             }
             Command::Update { groups, dependents } => {

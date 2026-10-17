@@ -87,14 +87,15 @@ fn json_check_lists_unrecorded_dependents() {
 }
 
 #[test]
-fn quiet_check_fails_silently() {
+fn quiet_check_names_the_unrecorded_file_on_stderr() {
     let dir = recorded_with_new_page(false);
     bin()
         .current_dir(&dir)
         .args(["check", "--format", "quiet"])
         .assert()
         .code(1)
-        .stdout(is_empty());
+        .stdout(is_empty())
+        .stderr(contains("unrecorded: docs/new.md"));
 }
 
 #[test]

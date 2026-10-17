@@ -83,6 +83,9 @@ impl Config {
 pub struct Outcome {
     /// Text to print, honouring the configured format.
     pub output: String,
+    /// Text for stderr: under the quiet format a failing check still gets
+    /// what plain output says about its failures, so a silent gate names them.
+    pub diagnostics: String,
     /// True if a group is stale or uninitialised.
     pub failed: bool,
 }
@@ -144,9 +147,16 @@ fn exempt_paths(ctx: &Context) -> Vec<String> {
 pub fn check(config: &Config, groups: &[String]) -> Result<Outcome> {
     let report = evaluate(config, groups)?;
     let output = report::render_report(&report, config.format, config.color, Listing::Failing)?;
+    let failed = report.has_failure();
+    let diagnostics = if failed && config.format == Format::Quiet {
+        report::render_report(&report, Format::Plain, config.color, Listing::Failing)?
+    } else {
+        String::new()
+    };
     Ok(Outcome {
         output,
-        failed: report.has_failure(),
+        diagnostics,
+        failed,
     })
 }
 

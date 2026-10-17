@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `check --format quiet` still prints nothing on a pass, but a failure now
+  prints what plain `check` would (the failing groups, what changed, the
+  dependents to review and the confirming command) to stderr, so a gate that
+  runs it no longer goes red without saying why. `status`, `init` and `update`
+  stay silent under `quiet`.
+
 ## [0.7.0] - 2026-10-07
 
 ### Changed

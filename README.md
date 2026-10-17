@@ -158,6 +158,8 @@ each untracked file so you can add it to a group or exclude it.
 ## CI and pre-commit
 
 Gate a repository by running `check` in CI; it exits non-zero on drift.
+`--format quiet` prints nothing on a pass. On a failure it prints the failing
+groups to stderr, just as plain `check` would, so a red gate explains itself.
 
 ```yaml
 # .github/workflows/outdatty.yml
@@ -168,10 +170,7 @@ For a local guard, add a pre-commit hook:
 
 ```bash
 # .git/hooks/pre-commit
-outdatty check --format quiet || {
-  echo "outdatty: a source changed without its dependents; run 'outdatty update'" >&2
-  exit 1
-}
+exec outdatty check --format quiet
 ```
 
 ## Contributing

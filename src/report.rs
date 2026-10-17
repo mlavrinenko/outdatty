@@ -19,7 +19,7 @@ pub enum Format {
     Plain,
     /// Machine-readable JSON.
     Json,
-    /// No output; rely on the exit code.
+    /// No output on a pass; a failing `check` names its failures on stderr.
     Quiet,
     /// Newline-delimited changed source paths, for piping into a diff tool.
     Paths,

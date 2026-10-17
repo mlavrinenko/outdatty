@@ -3,7 +3,7 @@
 #show: task.with(
   title: "Name the failing groups when quiet check fails",
   priority: 5,
-  status: proposed(2026, 10, 17),
+  status: done(2026, 10, 17),
 )
 
 = Problem

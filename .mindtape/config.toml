@@ -73,6 +73,7 @@ kind = "int"
 min = 0
 max = 9
 required = "!terminal"
+example = 5
 [[tasks.priority.bands]]
 label = "low"
 min = 0

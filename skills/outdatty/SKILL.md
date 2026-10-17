@@ -34,7 +34,9 @@ your own diff tool (see the review-before-update loop).
 ## Commands
 
 - `outdatty init [--force]` — write a starter `outdatty.yaml`.
-- `outdatty check [--group ID]...` — fail if any selected group is stale or new.
+- `outdatty check [--group ID]...` — fail if any selected group is stale, new
+  or unrecorded, a required file is untracked, or the lockfile holds a group
+  the manifest no longer declares (orphaned; a plain `update` prunes it).
   The CI gate. Exit codes: 0 = all confirmed, 1 = drift, 2 = error (bad
   manifest, missing file, etc.).
 - `outdatty status [--group ID]...` — the check report, but always exit 0. Use
@@ -80,8 +82,9 @@ bidirectional when both sides must stay mutually consistent (a spec and its
 implementation); directed when one side is generated from or documents the
 other.
 
-Statuses: `ok`, `stale` (a source changed), `new` (no locked snapshot yet —
-fails check until the first `update`).
+Statuses: `ok`, `stale` (a source changed), `new` (no locked snapshot yet;
+fails until the first `update`), `unrecorded` (a dependents glob gained a file
+the lock has no hash for; record it with `--dependent`).
 
 ## Coverage: require_tracked
 
@@ -102,10 +105,8 @@ updating without looking confirms drift nobody reviewed. Instead:
 2. Diff the source changes with your own tool; outdatty hands you the paths:
 
    ```sh
-   # robust — NUL-delimited, safe for paths with spaces
+   # NUL-delimited, safe for paths with spaces
    outdatty status --format=paths0 | xargs -0 -r git diff --
-   # or, simply
-   git diff -- $(outdatty status --format=paths)
    # or open them for review
    outdatty status --format=paths0 | xargs -0 -r "$EDITOR"
    ```
@@ -153,6 +154,7 @@ every group, passing ones as `[  ok   ]  <id>`.
   ```json
   {
     "version": 1, "failed": true, "total": 1, "out_of_date": 1,
+    "untracked": [], "orphaned": [],
     "groups": [
       { "id": "cli-docs", "status": "stale",
         "changed_sources": ["src/report.rs"],
@@ -163,13 +165,11 @@ every group, passing ones as `[  ok   ]  <id>`.
   }
   ```
 
-- `paths` / `paths0`: bare changed-source and unrecorded-dependent paths
-  (all groups, sorted, deduped)
-  for piping into a diff or editor; newline- or NUL-delimited — prefer
-  `paths0 | xargs -0` so paths with spaces survive. Empty when nothing drifted.
-- `quiet`: no output on a pass; rely on the exit code. A failing `check`
-  prints its plain failure lines and summary to stderr, so a gate that runs
-  it still names the failing groups. `status`, `init` and `update` stay silent.
+- `paths` / `paths0`: every group's changed-source and unrecorded-dependent
+  paths, sorted, deduped, newline- or NUL-delimited, for a diff or editor.
+  Prefer `paths0 | xargs -0` so spaces survive. Empty when nothing drifted.
+- `quiet`: silent on a pass. A failing `check` prints its plain report to
+  stderr, so a gate still names what failed; `status`, `init`, `update` don't.
 
 `check` keeps exit 1 on drift under any format, so
 `outdatty check --format=paths0 | xargs -0 -r ...` both prints paths and gates.
@@ -180,9 +180,8 @@ every group, passing ones as `[  ok   ]  <id>`.
    about (sources → the docs/tests/generated files that must track them).
 2. `outdatty update` once to record the baseline. Commit both `outdatty.yaml`
    and `outdatty.lock`.
-3. Gate CI with `outdatty check` (exit 1 fails the build on unreviewed drift).
-   In a `just`/make repo, add it to the existing check target; the loop above
-   plus the built-in output replaces a per-project `outdatty-review` script.
+3. Gate CI with `outdatty check`, or add it to the repo's existing check
+   target. The loop above replaces any per-project `outdatty-review` script.
 
 ## Gotchas
 
@@ -190,7 +189,6 @@ every group, passing ones as `[  ok   ]  <id>`.
   moved and the group is unconfirmed. Review, fix if needed, then `update`.
 - outdatty is VCS-agnostic and diff-free by design; for a real since-locked
   diff, feed the paths output to your own tooling.
-- `new` groups fail `check` until the first `update` records their snapshot.
 - Confirm only what you looked at: `--group` for the groups you reviewed,
   `--dependent` for a dependent-only edit.
 - A locked file later deleted is drift (in `changed_sources`), not an error: a

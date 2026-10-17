@@ -126,7 +126,18 @@ names the command that records it:
     unrecorded: www/content/cli/add.typ
       record it: outdatty update --group cli-docs --dependent www/content/cli/add.typ
 ```
- Glob expansion skips files ignored by git — the
+
+A group you split, rename or drop leaves its hashes in the lockfile. `check`
+fails on each such orphan and names it, and a plain `outdatty update` prunes
+them. A `--group` check skips orphans, as it skips coverage.
+
+```
+[orphaned]  1 lock group(s) the manifest no longer declares
+    orphaned group:    old-docs
+    prune with:        outdatty update
+```
+
+Glob expansion skips files ignored by git — the
 `.gitignore` files (root and nested), the global excludes, and
 `.git/info/exclude` — so build output never enters a group; set
 `gitignore: false` at the top of the manifest to match every file. The `.git`

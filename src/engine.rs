@@ -82,13 +82,19 @@ pub struct Report {
     /// Files `require_tracked` demands but no group covers. Populated only for a
     /// whole-manifest check; a non-empty list fails a `check`.
     pub untracked: Vec<String>,
+    /// Lockfile groups the manifest no longer declares, sorted. Populated only
+    /// for a whole-manifest evaluation; a non-empty list fails a `check`.
+    pub orphaned: Vec<String>,
 }
 
 impl Report {
-    /// Returns true if any group is failing or any required file is untracked.
+    /// Returns true if any group is failing, any required file is untracked, or
+    /// the lockfile holds a group the manifest no longer declares.
     #[must_use]
     pub fn has_failure(&self) -> bool {
-        self.groups.iter().any(|group| group.status.is_failure()) || !self.untracked.is_empty()
+        self.groups.iter().any(|group| group.status.is_failure())
+            || !self.untracked.is_empty()
+            || !self.orphaned.is_empty()
     }
 }
 
@@ -225,10 +231,23 @@ pub fn evaluate(
     }
     // Coverage is a whole-manifest concern computed by the caller (it needs the
     // manifest and lockfile paths to exempt); an unfiltered evaluation reports no
-    // untracked files here.
+    // untracked files here. Orphans, like coverage, are whole-manifest: a scoped
+    // `--group` evaluation reports none.
+    let orphaned = match filter {
+        Filter::All => {
+            let declared = ids(manifest);
+            lock.groups
+                .keys()
+                .filter(|id| !declared.contains(id))
+                .cloned()
+                .collect()
+        }
+        Filter::Only(_) => Vec::new(),
+    };
     Ok(Report {
         groups,
         untracked: Vec::new(),
+        orphaned,
     })
 }
 

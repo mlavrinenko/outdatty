@@ -5,6 +5,7 @@ fn report(groups: Vec<GroupReport>) -> Report {
     Report {
         groups,
         untracked: Vec::new(),
+        orphaned: Vec::new(),
     }
 }
 

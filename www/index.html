@@ -351,6 +351,11 @@ groups:
           <code>check</code> when a brand-new file belongs to no group &mdash; so
           nothing slips in untracked.
         </p>
+        <p>
+          A group you rename or drop leaves its hashes in the lock, and
+          <code>check</code> fails on them until a plain
+          <code>outdatty update</code> prunes them.
+        </p>
       </div>
     </section>
 

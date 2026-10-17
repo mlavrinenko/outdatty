@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `check` fails on each group the lockfile holds but `outdatty.yaml` no longer
+  declares, which used to pile up unseen after a split or rename. Plain output
+  names each one under `[orphaned]` with the fix, `outdatty update`, which
+  prunes them; the summary counts them (`1 orphaned lock group`); `status`
+  lists them without failing; JSON gains a top-level `orphaned` array. A
+  `--group` check skips them, as it skips coverage.
+
 ### Changed
 
 - `check --format quiet` still prints nothing on a pass, but a failure now

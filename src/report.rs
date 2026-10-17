@@ -55,6 +55,7 @@ struct ReportView<'a> {
     total: usize,
     out_of_date: usize,
     untracked: &'a [String],
+    orphaned: &'a [String],
     groups: &'a [GroupReport],
 }
 
@@ -67,10 +68,11 @@ impl<'a> ReportView<'a> {
             .count();
         Self {
             version: JSON_VERSION,
-            failed: out_of_date > 0 || !report.untracked.is_empty(),
+            failed: report.has_failure(),
             total: report.groups.len(),
             out_of_date,
             untracked: &report.untracked,
+            orphaned: &report.orphaned,
             groups: &report.groups,
         }
     }
@@ -153,7 +155,7 @@ fn to_json<T: Serialize>(value: &T) -> Result<String> {
 }
 
 fn render_report_plain(report: &Report, styler: Styler, listing: Listing) -> String {
-    if report.groups.is_empty() && report.untracked.is_empty() {
+    if report.groups.is_empty() && report.untracked.is_empty() && report.orphaned.is_empty() {
         return "no groups defined\n".to_owned();
     }
     let mut out = String::new();
@@ -161,6 +163,7 @@ fn render_report_plain(report: &Report, styler: Styler, listing: Listing) -> Str
         push_group_line(&mut out, group, styler);
     }
     out.push_str(&coverage::render_plain(&report.untracked, styler));
+    push_orphaned(&mut out, &report.orphaned, styler);
     let total = report.groups.len();
     let failures = report
         .groups
@@ -175,15 +178,22 @@ fn render_report_plain(report: &Report, styler: Styler, listing: Listing) -> Str
         total,
         failures,
         report.untracked.len(),
+        report.orphaned.len(),
     ));
     out.push('\n');
     out
 }
 
 /// The line closing every plain report: `outdatty: 1 of 20 groups out of date,
-/// 2 untracked files`, or `outdatty: 20 groups up to date`.
-fn summary_line(styler: Styler, total: usize, failures: usize, untracked: usize) -> String {
-    if failures == 0 && untracked == 0 {
+/// 2 untracked files, 1 orphaned lock group`, or `outdatty: 20 groups up to date`.
+fn summary_line(
+    styler: Styler,
+    total: usize,
+    failures: usize,
+    untracked: usize,
+    orphaned: usize,
+) -> String {
+    if failures == 0 && untracked == 0 && orphaned == 0 {
         return styler.green(&format!("outdatty: {} up to date", counted(total, "group")));
     }
     let mut parts = Vec::new();
@@ -195,6 +205,9 @@ fn summary_line(styler: Styler, total: usize, failures: usize, untracked: usize)
     }
     if untracked > 0 {
         parts.push(counted(untracked, "untracked file"));
+    }
+    if orphaned > 0 {
+        parts.push(counted(orphaned, "orphaned lock group"));
     }
     styler.red(&format!("outdatty: {}", parts.join(", ")))
 }
@@ -238,6 +251,25 @@ fn push_group_line(out: &mut String, group: &GroupReport, styler: Styler) {
         )));
         out.push('\n');
     }
+}
+
+/// Names each lockfile group the manifest no longer declares, then the command
+/// that prunes them.
+fn push_orphaned(out: &mut String, orphaned: &[String], styler: Styler) {
+    if orphaned.is_empty() {
+        return;
+    }
+    out.push_str(&styler.red(&format!(
+        "[orphaned]  {} lock group(s) the manifest no longer declares",
+        orphaned.len()
+    )));
+    out.push('\n');
+    for id in orphaned {
+        out.push_str(&styler.dim(&format!("    orphaned group:    {id}")));
+        out.push('\n');
+    }
+    out.push_str(&styler.dim("    prune with:        outdatty update"));
+    out.push('\n');
 }
 
 fn status_label(styler: Styler, status: Status) -> String {

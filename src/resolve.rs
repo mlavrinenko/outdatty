@@ -1,6 +1,6 @@
 //! Expansion of manifest patterns into concrete artifact paths.
 
-use std::path::Path;
+use std::path::{Component, Path, PathBuf};
 
 use globset::{GlobBuilder, GlobSet, GlobSetBuilder};
 use ignore::{DirEntry, Walk, WalkBuilder};
@@ -63,6 +63,31 @@ pub fn all_files(base: &Path, gitignore: bool) -> Vec<String> {
     }
     out.sort();
     out.dedup();
+    out
+}
+
+/// Resolves `.` and `..` in `path` without touching the filesystem, so
+/// `.config/..` is `.` and `/repo/.config/..` is `/repo`. A `..` that climbs
+/// above a relative start is kept, and an empty result is `.`.
+#[must_use]
+pub fn clean(path: &Path) -> PathBuf {
+    let mut out = PathBuf::new();
+    for part in path.components() {
+        match part {
+            Component::CurDir => {}
+            Component::ParentDir => match out.components().next_back() {
+                Some(Component::Normal(_)) => {
+                    out.pop();
+                }
+                Some(Component::RootDir | Component::Prefix(_)) => {}
+                Some(Component::CurDir | Component::ParentDir) | None => out.push(".."),
+            },
+            other => out.push(other),
+        }
+    }
+    if out.as_os_str().is_empty() {
+        out.push(".");
+    }
     out
 }
 
@@ -159,9 +184,24 @@ fn normalize(path: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
 
-    use super::{all_files, expand, is_glob};
+    use super::{all_files, clean, expand, is_glob};
+
+    #[test]
+    fn clean_resolves_dots_lexically() {
+        for (raw, want) in [
+            (".config/..", "."),
+            ("./.config/../src", "src"),
+            ("../.config/..", ".."),
+            ("a/../../b", "../b"),
+            ("/repo/.config/..", "/repo"),
+            ("/..", "/"),
+            ("sub", "sub"),
+        ] {
+            assert_eq!(clean(Path::new(raw)), PathBuf::from(want), "{raw}");
+        }
+    }
 
     fn touch(dir: &Path, name: &str) {
         std::fs::write(dir.join(name), b"x").expect("write");

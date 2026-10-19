@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- An optional top-level `root:` in the manifest, relative to the manifest's
+  directory, sets where every path and every lockfile key resolves from. A
+  pair kept in `.config/` sets `root: ..` and keeps the paths and lock keys it
+  had at the repo root. Without `root`, nothing changes. The lockfile still
+  defaults to `outdatty.lock` beside the manifest, and a `root` that names no
+  directory is an error.
+- Without `--manifest`, outdatty also finds `.config/outdatty.yaml` and
+  `.config/outdatty.yml`, after `outdatty.yaml` and `outdatty.yml`.
+
 ## [0.8.0] - 2026-10-17
 
 ### Added

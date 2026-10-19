@@ -7,9 +7,15 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
+use crate::resolve;
 
 /// Default manifest file names, tried in order during discovery.
-const DEFAULT_NAMES: [&str; 2] = ["outdatty.yaml", "outdatty.yml"];
+const DEFAULT_NAMES: [&str; 4] = [
+    "outdatty.yaml",
+    "outdatty.yml",
+    ".config/outdatty.yaml",
+    ".config/outdatty.yml",
+];
 
 /// Default for [`Manifest::gitignore`].
 const fn default_gitignore() -> bool {
@@ -25,6 +31,14 @@ fn default_require_tracked() -> Vec<String> {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Manifest {
+    /// The directory every path in the manifest and every key in the lockfile
+    /// resolves from, relative to the manifest's own directory. Defaults to that
+    /// directory, so a manifest kept in `.config/` sets `root: ..` to write its
+    /// paths from the repository root. The lockfile still defaults to
+    /// `outdatty.lock` beside the manifest.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub root: Option<String>,
+
     /// Dependency groups. Each group couples one or more source artifacts to
     /// the dependents that must be re-confirmed when a source changes.
     #[serde(default)]
@@ -51,6 +65,7 @@ pub struct Manifest {
 impl Default for Manifest {
     fn default() -> Self {
         Self {
+            root: None,
             groups: Vec::new(),
             gitignore: default_gitignore(),
             require_tracked: default_require_tracked(),
@@ -127,7 +142,29 @@ impl Manifest {
         Ok(())
     }
 
-    /// Finds the default manifest in `dir`, returning the first existing name.
+    /// The directory this manifest's paths and lock keys resolve from:
+    /// `manifest_dir`, joined with [`Manifest::root`] when set, its `.` and `..`
+    /// resolved lexically.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::RootNotFound`] if `root` names no directory.
+    pub fn root_dir(&self, manifest_dir: &Path) -> Result<PathBuf> {
+        let Some(root) = &self.root else {
+            return Ok(manifest_dir.to_path_buf());
+        };
+        let path = resolve::clean(&manifest_dir.join(root));
+        if !path.is_dir() {
+            return Err(Error::RootNotFound {
+                root: root.clone(),
+                path,
+            });
+        }
+        Ok(path)
+    }
+
+    /// Finds the default manifest in `dir`, returning the first existing name:
+    /// `outdatty.yaml` or `outdatty.yml`, then the same two under `.config/`.
     #[must_use]
     pub fn discover(dir: &Path) -> Option<PathBuf> {
         for name in DEFAULT_NAMES {
@@ -194,6 +231,49 @@ mod tests {
         let manifest: Manifest = serde_yaml_ng::from_str(text).expect("parse");
         let group = manifest.groups.first().expect("group");
         assert!(group.dependents.is_empty(), "dependents defaults to empty");
+    }
+
+    #[test]
+    fn root_defaults_to_the_manifest_directory() {
+        let text = "groups: []\n";
+        let manifest: Manifest = serde_yaml_ng::from_str(text).expect("parse");
+        assert!(manifest.root.is_none(), "root defaults to none");
+        let dir = tempfile::tempdir().expect("tempdir");
+        assert_eq!(manifest.root_dir(dir.path()).expect("root"), dir.path());
+    }
+
+    #[test]
+    fn root_joins_the_manifest_directory() {
+        let text = "root: ..\ngroups: []\n";
+        let manifest: Manifest = serde_yaml_ng::from_str(text).expect("parse");
+        assert_eq!(manifest.root.as_deref(), Some(".."));
+        let dir = tempfile::tempdir().expect("tempdir");
+        let config = dir.path().join(".config");
+        std::fs::create_dir(&config).expect("mkdir");
+        assert_eq!(manifest.root_dir(&config).expect("root"), dir.path());
+    }
+
+    #[test]
+    fn root_must_name_a_directory() {
+        let manifest = Manifest {
+            root: Some("nope".to_owned()),
+            ..Manifest::default()
+        };
+        let dir = tempfile::tempdir().expect("tempdir");
+        let err = manifest.root_dir(dir.path()).expect_err("missing root");
+        assert!(err.to_string().contains("root `nope`"), "{err}");
+    }
+
+    #[test]
+    fn discovers_the_config_dir_after_the_top_level() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        std::fs::create_dir(dir.path().join(".config")).expect("mkdir");
+        let nested = dir.path().join(".config/outdatty.yaml");
+        std::fs::write(&nested, "groups: []\n").expect("write");
+        assert_eq!(Manifest::discover(dir.path()), Some(nested));
+        let top = dir.path().join("outdatty.yaml");
+        std::fs::write(&top, "groups: []\n").expect("write");
+        assert_eq!(Manifest::discover(dir.path()), Some(top));
     }
 
     #[test]

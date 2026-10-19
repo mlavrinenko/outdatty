@@ -26,6 +26,13 @@
       "items": {
         "type": "string"
       }
+    },
+    "root": {
+      "description": "The directory every path in the manifest and every key in the lockfile resolves from, relative to the manifest's own directory. Defaults to that directory, so a manifest kept in `.config/` sets `root: ..` to write its paths from the repository root. The lockfile still defaults to `outdatty.lock` beside the manifest.",
+      "type": [
+        "string",
+        "null"
+      ]
     }
   },
   "additionalProperties": false,

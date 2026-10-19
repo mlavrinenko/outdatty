@@ -4,6 +4,10 @@
 # must be re-confirmed whenever a source changes. Confirm with `outdatty update`,
 # gate in CI with `outdatty check`.
 
+# Paths and lockfile keys resolve from the manifest's directory. A manifest kept
+# in .config/ sets `root: ..` to write them from the repository root instead.
+# root: ..
+
 # Coverage: every file git does not ignore must belong to a group below, so a
 # brand-new file cannot slip in untracked. Defaults to ["**"] when omitted;
 # last match wins and `!` excludes. The manifest and lockfile are always exempt.
@@ -21,8 +25,8 @@ groups:
       - docs/feature.mdx
       - tests/feature.rs
 
-  # Globs are expanded relative to the manifest; adding or removing a matching
-  # file counts as a change.
+  # Globs are expanded relative to `root`, the manifest's directory unless set;
+  # adding or removing a matching file counts as a change.
   - name: public-api
     source:
       - src/api/**/*.rs

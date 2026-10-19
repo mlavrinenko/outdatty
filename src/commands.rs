@@ -13,6 +13,7 @@ use crate::lock::{self, Lockfile};
 use crate::manifest::{self, Manifest};
 use crate::record;
 use crate::report::{self, Format, Listing};
+use crate::resolve;
 
 /// Starter manifest written by [`init`].
 const TEMPLATE: &str = r"# yaml-language-server: $schema=https://raw.githubusercontent.com/mlavrinenko/outdatty/main/schema/outdatty.schema.json
@@ -68,7 +69,7 @@ impl Config {
     fn context(&self) -> Result<Context> {
         let manifest_path = self.manifest_path()?;
         let manifest = Manifest::load(&manifest_path)?;
-        let base = base_dir(&manifest_path);
+        let base = manifest.root_dir(&base_dir(&manifest_path))?;
         let lock_path = self.lock_path(&manifest_path);
         Ok(Context {
             manifest,
@@ -125,15 +126,20 @@ fn evaluate(config: &Config, groups: &[String]) -> Result<Report> {
 }
 
 /// The manifest and lockfile, base-relative and slash-normalized, so coverage
-/// never reports the files that drive it.
+/// never reports the files that drive it. Both sides are cleaned first, since a
+/// `root` such as `..` leaves the base above the manifest's own directory.
 fn exempt_paths(ctx: &Context) -> Vec<String> {
+    let base = resolve::clean(&ctx.base);
     [ctx.manifest_path.as_path(), ctx.lock_path.as_path()]
         .into_iter()
         .map(|path| {
-            path.strip_prefix(&ctx.base)
-                .unwrap_or(path)
-                .to_string_lossy()
-                .replace('\\', "/")
+            let path = resolve::clean(path);
+            let rel = if base == Path::new(".") {
+                path.as_path()
+            } else {
+                path.strip_prefix(&base).unwrap_or(&path)
+            };
+            rel.to_string_lossy().replace('\\', "/")
         })
         .collect()
 }

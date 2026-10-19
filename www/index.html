@@ -352,6 +352,12 @@ groups:
           nothing slips in untracked.
         </p>
         <p>
+          Rather keep the pair in <code>.config/</code>? Add
+          <code>root: ..</code> to <code>.config/outdatty.yaml</code> and every
+          path and lock key resolves from the repo root, just as before.
+          outdatty finds that manifest without a <code>--manifest</code> flag.
+        </p>
+        <p>
           A group you rename or drop leaves its hashes in the lock, and
           <code>check</code> fails on them until a plain
           <code>outdatty update</code> prunes them.

@@ -4,70 +4,50 @@
 [![crates.io](https://img.shields.io/crates/v/outdatty.svg)](https://crates.io/crates/outdatty)
 [![License: MIT](https://img.shields.io/crates/l/outdatty.svg)](LICENSE-MIT)
 
-Declare a dependency graph between arbitrary files and have CI fail when a
-source changes but its dependents were not re-confirmed. Language- and
-format-agnostic: code, docs, `.docx`, configs — anything with bytes.
+Declare which files depend on which, and CI fails when a source changes but
+nobody re-confirmed its dependents. Language and format don't matter. Code,
+docs, `.docx`, configs, anything with bytes.
 
-Unlike build systems (Task, Bazel, Buck2) it runs no commands, and unlike file
-integrity monitors (AIDE) it models dependencies between files. It only answers
-one question: did a source change without its dependents being confirmed?
+Unlike a build system (Task, Bazel, Buck2) it runs no commands, and unlike a
+file integrity monitor (AIDE) it models links between files. It answers one
+question. Did a source change without its dependents being confirmed?
 
 ## How it works
 
-1. A YAML manifest declares groups: each couples `source` artifacts to the
+1. A YAML manifest declares groups. Each couples `source` files to the
    `dependents` that must stay in sync with them.
-2. `outdatty update` records a `blake3` hash of every file into a committed
-   lockfile (`outdatty.lock`) — this is the developer explicitly confirming the
-   group is in sync.
-3. `outdatty check` (in CI) recomputes hashes. If a source changed since the
-   last confirmation, the group is stale and the check fails with exit code 1.
-   Editing only a dependent is allowed (set `bidirectional: true` to flag that
-   too).
-4. The developer reviews, updates the dependents, and runs `outdatty update`
-   to re-confirm.
+2. `outdatty update` records a `blake3` hash of every file in a committed
+   lockfile, `outdatty.lock`. That's you confirming the group is in sync.
+3. `outdatty check` in CI recomputes the hashes. A source that changed since
+   the last confirmation makes its group stale, and the check exits 1. Editing
+   only a dependent is fine, unless the group sets `bidirectional: true`.
+4. You review, fix the dependents and run `outdatty update` to re-confirm.
 
 ## Install
 
-### From crates.io
-
 ```bash
-cargo install outdatty
+cargo install outdatty                        # from crates.io
+nix run github:mlavrinenko/outdatty -- check  # with Nix, nothing installed
 ```
 
-### With Nix
-
-Run without installing:
-
-```bash
-nix run github:mlavrinenko/outdatty -- check
-```
-
-Or add it to your flake inputs:
-
-```nix
-# flake.nix
-outdatty.url = "github:mlavrinenko/outdatty";
-```
-
-### From binary releases
-
-Download a pre-built binary from the
+In a flake, add `outdatty.url = "github:mlavrinenko/outdatty";` to your inputs.
+Pre-built binaries live on the
 [latest release](https://github.com/mlavrinenko/outdatty/releases/latest).
 
 ## Usage
 
 ```bash
 outdatty init                 # write a starter outdatty.yaml
-outdatty update               # confirm: record current hashes into outdatty.lock
-outdatty check                # CI gate: exit 1 if a source changed without re-confirmation
+outdatty update               # confirm, recording current hashes in outdatty.lock
+outdatty check                # CI gate, exits 1 if a source changed unconfirmed
 outdatty status               # show every group without failing
 outdatty update --group docs  # confirm only one group
 outdatty update --group docs --dependent README.md  # record one reviewed dependent
 outdatty schema               # print the manifest JSON schema
 ```
 
-Plain `check` prints only what failed, then one summary line; a passing run
-prints `outdatty: 5 groups up to date`:
+Plain `check` prints only what failed, then one summary line. A passing run
+prints `outdatty: 5 groups up to date`.
 
 ```
 [ stale ]  cli-docs
@@ -79,27 +59,27 @@ outdatty: 1 of 5 groups out of date
 ```
 
 `--dependent` (repeatable, needs `--group`) records only the named dependents'
-hashes, leaving the groups' sources and other dependents as locked, so a
-dependent-only edit claims review of that file alone. Each path is recorded in
-whichever named groups declare it; a path none of them declares is an error.
+hashes and leaves the sources and other dependents as locked, so a
+dependent-only edit claims review of that file alone. Each path lands in every
+named group that declares it, and a path none of them declares is an error.
 
-Global flags: `--manifest <path>`, `--lock <path>`,
-`--format plain|json|quiet|paths|paths0`, `--color auto|always|never`. Plain
-output is colorized on an interactive terminal; `auto` (the default) disables
+The global flags are `--manifest <path>`, `--lock <path>`,
+`--format plain|json|quiet|paths|paths0` and `--color auto|always|never`. Plain
+output is colored on an interactive terminal, and `auto`, the default, drops
 color when piped or when `NO_COLOR` is set.
 
-Exit codes: `0` in sync, `1` drift (check only), `2` operational error
-(unknown group, duplicate group name, unparseable manifest, incompatible
-lockfile). A missing lockfile is not an operational error: `check` treats every
-group as new and exits `1`, so run `outdatty update` to create it.
+`check` exits `0` in sync and `1` on drift. Any command exits `2` on an
+operational error, like an unknown group, a duplicate group name, an unparseable
+manifest or an incompatible lockfile. A missing lockfile isn't one, since
+`check` treats every group as new and exits `1`. Run `outdatty update` to make it.
 
 `--format=paths` (newline-delimited) and `--format=paths0` (NUL-delimited)
-print just the deduped, sorted changed-source and unrecorded-dependent paths — no labels, no summary —
-so you can pipe the drift straight into your own diff or editor. outdatty
-stores hashes, not diffs, so it hands you the path set and you pick the tool:
+print just the sorted, deduped changed-source and unrecorded-dependent paths,
+with no labels or summary. outdatty stores hashes, not diffs, so it hands you
+the paths and you pipe them into whatever diff or editor you like.
 
 ```bash
-outdatty status --format=paths0 | xargs -0 -r git diff --   # robust: handles spaces
+outdatty status --format=paths0 | xargs -0 -r git diff --   # robust, handles spaces
 git diff -- $(outdatty status --format=paths)                # simple
 ```
 
@@ -115,11 +95,10 @@ groups:
     # bidirectional: true             # also flag the group when a dependent changes
 ```
 
-See [examples/outdatty.yaml](examples/outdatty.yaml). A path that disappears —
-a deleted literal, or a glob that no longer matches a previously locked file —
-counts as a change to confirm. A file a dependent glob newly
-expands to, with no hash in the lockfile, fails `check` as `unrecorded` and
-names the command that records it:
+See [examples/outdatty.yaml](examples/outdatty.yaml). A deleted literal, or a
+glob that no longer matches a locked file, counts as a change to confirm. A file
+a dependents glob newly matches, with no hash in the lockfile, fails `check` as
+`unrecorded`, and outdatty names the command that records it.
 
 ```
 [ unrec ]  cli-docs
@@ -137,19 +116,37 @@ them. A `--group` check skips orphans, as it skips coverage.
     prune with:        outdatty update
 ```
 
-Glob expansion skips files ignored by git — the
-`.gitignore` files (root and nested), the global excludes, and
-`.git/info/exclude` — so build output never enters a group; set
-`gitignore: false` at the top of the manifest to match every file. The `.git`
-directory is never traversed, and symlinks are not followed during glob
-expansion.
+Globs skip whatever git ignores (root and nested `.gitignore` files, the global
+excludes, `.git/info/exclude`), so build output never sneaks into a group. Set
+`gitignore: false` at the top of the manifest to match every file. outdatty
+never walks `.git` and never follows a symlink while expanding a glob.
+
+### Keep the manifest in `.config/`
+
+Every path in the manifest, and every key in the lockfile, resolves from
+`root`, which defaults to the manifest's own directory. Point it at the repo
+root and the pair can live in `.config/` with paths written as before.
+
+```yaml
+# .config/outdatty.yaml
+root: ..                              # paths resolve from the repo root
+groups:
+  - name: feature
+    source: [src/feature.rs]
+    dependents: [docs/feature.mdx]
+```
+
+Without `--manifest`, outdatty tries `outdatty.yaml` and `outdatty.yml`, then
+the same two under `.config/`. The lockfile stays beside the manifest, here
+`.config/outdatty.lock`, and its keys don't change. So moving an existing pair
+takes that one `root: ..` line and no `update`.
 
 ### Coverage: catch brand-new files
 
-A glob source flags a file that *changed*. Coverage flags a file that no group
-mentions *at all* — a brand-new file someone forgot to wire in. `require_tracked`
-lists the files that must appear in some group's `source` or `dependents`; any
-that do not fail `check` as `untracked`.
+A glob source flags a file that *changed*. Coverage flags a file no group
+mentions *at all*, the brand-new one someone forgot to wire in.
+`require_tracked` lists the files that must appear in some group's `source` or
+`dependents`, and any that don't fail `check` as `untracked`.
 
 ```yaml
 # Default when omitted: ["**"] — every git-tracked file must belong to a group.
@@ -161,23 +158,23 @@ require_tracked:
 # require_tracked: ["!**"]      # or opt out entirely
 ```
 
-Patterns match last-wins: the last one to match a path decides, and a leading
-`!` excludes it. The universe is every file git does not ignore (honouring
-`gitignore`); the manifest and lockfile are always exempt. A failing check names
-each untracked file so you can add it to a group or exclude it.
+The last pattern to match a path decides, and a leading `!` excludes it. The
+universe is every file under `root` that git doesn't ignore (honoring
+`gitignore`), and the manifest and lockfile are always exempt. A failing check
+names each untracked file, so you can add it to a group or exclude it.
 
 ## CI and pre-commit
 
-Gate a repository by running `check` in CI; it exits non-zero on drift.
-`--format quiet` prints nothing on a pass. On a failure it prints the failing
-groups to stderr, just as plain `check` would, so a red gate explains itself.
+Gate a repo by running `check` in CI, which exits non-zero on drift. `--format
+quiet` prints nothing on a pass. On a failure it prints the failing groups to
+stderr just as plain `check` would, so a red gate explains itself.
 
 ```yaml
 # .github/workflows/outdatty.yml
 - run: outdatty check --format quiet
 ```
 
-For a local guard, add a pre-commit hook:
+For a local guard, add a pre-commit hook.
 
 ```bash
 # .git/hooks/pre-commit

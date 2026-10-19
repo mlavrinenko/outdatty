@@ -59,6 +59,7 @@ you re-confirm; `dependents` are the files to review when that happens.
 
 ```yaml
 # yaml-language-server: $schema=https://raw.githubusercontent.com/mlavrinenko/outdatty/main/schema/outdatty.schema.json
+# root: ..                    # resolve paths from here, not the manifest's dir
 groups:
   - name: cli-docs            # unique id; used in reports and --group
     source:                   # globs allowed, e.g. src/**/*.rs
@@ -71,16 +72,19 @@ groups:
 gitignore: true               # default: glob expansion skips git-ignored paths
 ```
 
-Required: `name` and a non-empty `source`. `dependents` defaults to empty (a
-source-only group has nothing to review); `bidirectional` and `gitignore` are
-optional. Gitignore filtering applies only to glob matches — an explicitly
-listed path is always included.
+Required: `name` and a non-empty `source`; the rest is optional. `dependents`
+defaults to empty (a source-only group has nothing to review). Gitignore
+filtering applies only to glob matches; a listed literal is always included.
 
-Directed (default): editing a dependent alone is fine — only source changes
-stale the group. Bidirectional: a dependent change stales it too. Use
-bidirectional when both sides must stay mutually consistent (a spec and its
-implementation); directed when one side is generated from or documents the
-other.
+Every path and lock key resolves from `root`, by default the manifest's own
+directory. A manifest kept in `.config/` sets `root: ..` to write its paths from
+the repo root. Without `--manifest`, outdatty tries `outdatty.yaml`,
+`outdatty.yml`, then both under `.config/`; the lockfile sits beside it.
+
+Directed (default): only a source change stales the group. Bidirectional: a
+dependent change does too. Use bidirectional when both sides must stay
+consistent (a spec and its implementation), directed when one side documents
+or is generated from the other.
 
 Statuses: `ok`, `stale` (a source changed), `new` (no locked snapshot yet;
 fails until the first `update`), `unrecorded` (a dependents glob gained a file
@@ -187,10 +191,6 @@ every group, passing ones as `[  ok   ]  <id>`.
 
 - A failing `check` does not mean a dependent is wrong, only that a source
   moved and the group is unconfirmed. Review, fix if needed, then `update`.
-- outdatty is VCS-agnostic and diff-free by design; for a real since-locked
-  diff, feed the paths output to your own tooling.
-- Confirm only what you looked at: `--group` for the groups you reviewed,
-  `--dependent` for a dependent-only edit.
 - A locked file later deleted is drift (in `changed_sources`), not an error: a
   missing literal path is warned about and treated as removed.
 - `--format` only shapes `check` / `status`. `init` honours only `quiet`,

@@ -29,6 +29,15 @@ pub enum Error {
         source: Box<serde_yaml_ng::Error>,
     },
 
+    /// The manifest's `root` names no directory.
+    #[error("manifest root `{root}` is not a directory: {}", path.display())]
+    RootNotFound {
+        /// The `root` value as the manifest writes it.
+        root: String,
+        /// The path it resolved to.
+        path: PathBuf,
+    },
+
     /// A group is missing a `name` or declares a blank one.
     #[error("group #{0} has an empty `name`; every group must declare a unique name")]
     EmptyGroupName(usize),

@@ -14,7 +14,8 @@ use crate::style::ColorChoice;
 #[derive(Debug, Parser)]
 #[command(version, about)]
 pub struct Cli {
-    /// Path to the manifest (default: `outdatty.yaml` or `outdatty.yml`).
+    /// Path to the manifest (default: `outdatty.yaml` or `outdatty.yml`, then
+    /// the same under `.config/`).
     #[arg(long, global = true)]
     manifest: Option<PathBuf>,
 

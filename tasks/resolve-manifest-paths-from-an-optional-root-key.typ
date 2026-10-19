@@ -3,7 +3,7 @@
 #show: task.with(
   title: "Resolve manifest paths from an optional root key",
   priority: 6,
-  status: proposed(2026, 10, 19),
+  status: done(2026, 10, 19),
 )
 
 = Problem

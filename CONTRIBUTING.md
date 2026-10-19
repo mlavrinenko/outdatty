@@ -77,8 +77,10 @@ When a file exceeds the limit, split it into modules or separate documents.
 Use [Conventional Commits](https://www.conventionalcommits.org/): a `type(scope):
 summary` subject (`feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`, ...).
 
-No `Refs:` or other trailers are required for now. If the project later adopts an
-issue tracker, this section will define how to reference it.
+The backlog lives in `tasks/`, one Typst file per task, changed with `mt`. A task
+gets its own commits when it's filed and when it's closed, apart from the work.
+No commit carries a `Refs:` footer, since `.mindtape/config.toml` defines no
+commit rules.
 
 ## Submitting Changes
 

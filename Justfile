@@ -176,10 +176,11 @@ release VERSION *FLAGS:
 
 # Fork a sibling worktree on a new branch (`just fork <slug>`); extra flags go to
 # `wt switch`, e.g. `--base=@` to branch from HEAD, not main. The `pre-start`
-# hook in .config/wt.toml allows the new worktree's `.envrc`.
+# hook in .config/wt.toml allows the new worktree's `.envrc`. `--no-cd`, since a
+# recipe can't change its caller's directory and wt would warn that it didn't.
 [positional-arguments]
 fork SLUG *ARGS:
-    wt switch --create --yes "$@"
+    wt switch --create --yes --no-cd "$@"
 
 # Gate, fast-forward the branch onto main and remove its worktree; run it in the
 # worktree. `--no-squash --no-commit` keeps every commit and refuses a dirty tree

@@ -3,7 +3,7 @@
 #show: task.with(
   title: "Ship a git merge driver for outdatty.lock",
   priority: 5,
-  status: proposed(2026, 10, 28),
+  status: done(2026, 10, 28),
 )
 
 = Problem

@@ -420,6 +420,10 @@ inputs.outdatty.url = <span class="cmd">"github:mlavrinenko/outdatty"</span>;</p
             <h3>Review drift</h3>
 <pre><span class="dim"># pipe changed sources into your own diff tool</span>
 <span class="prompt">$</span> <span class="cmd">outdatty status --format=paths0 | xargs -0 -r git diff --</span></pre>
+            <h3>Merge the lock</h3>
+<pre><span class="dim"># branches that record different groups merge without a conflict</span>
+<span class="prompt">$</span> <span class="cmd">git config merge.outdatty.driver 'outdatty merge-lock %O %A %B'</span>
+<span class="prompt">$</span> <span class="cmd">echo 'outdatty.lock merge=outdatty' &gt;&gt; .gitattributes</span></pre>
           </div>
         </div>
       </div>

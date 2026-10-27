@@ -14,7 +14,7 @@
 //! The modules expose the manifest ([`manifest`]) and lockfile ([`lock`])
 //! formats, content hashing ([`hashing`]), pattern resolution ([`resolve`]),
 //! the evaluation engine ([`engine`]), per-dependent recording ([`record`]),
-//! and report rendering ([`report`]).
+//! report rendering ([`report`]), and the lockfile merge driver ([`merge`]).
 
 pub mod cli;
 pub mod commands;
@@ -24,6 +24,7 @@ pub mod error;
 pub mod hashing;
 pub mod lock;
 pub mod manifest;
+pub mod merge;
 pub mod record;
 pub mod report;
 pub mod resolve;

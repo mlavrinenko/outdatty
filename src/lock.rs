@@ -59,8 +59,26 @@ impl Lockfile {
         if !path.exists() {
             return Err(Error::LockNotFound(path.to_path_buf()));
         }
+        Self::parse(&fs::read_to_string(path)?, path)
+    }
+
+    /// Loads one side of a merge from `path`. Git hands a driver an empty file
+    /// for a side that has no lockfile, which reads as an empty lockfile.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Io`] if `path` cannot be read, or [`Error::LockParse`]
+    /// if a non-empty file cannot be parsed.
+    pub fn load_merge_side(path: &Path) -> Result<Self> {
         let text = fs::read_to_string(path)?;
-        let lock: Self = serde_yaml_ng::from_str(&text).map_err(|source| Error::LockParse {
+        if text.trim().is_empty() {
+            return Ok(Self::default());
+        }
+        Self::parse(&text, path)
+    }
+
+    fn parse(text: &str, path: &Path) -> Result<Self> {
+        let lock: Self = serde_yaml_ng::from_str(text).map_err(|source| Error::LockParse {
             path: path.to_path_buf(),
             source: Box::new(source),
         })?;

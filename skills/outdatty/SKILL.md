@@ -47,6 +47,7 @@ your own diff tool (see the review-before-update loop).
   records only that dependent's hash, in whichever named groups declare it,
   leaving sources and other dependents as locked; a path none declares errors.
 - `outdatty schema` — print the manifest's JSON schema.
+- `outdatty merge-lock BASE OURS THEIRS` — git's lockfile merge driver (setup step 4).
 
 Global flags (all subcommands): `--manifest <path>`, `--lock <path>`,
 `--format <plain|json|quiet|paths|paths0>`, `--color <auto|always|never>`.
@@ -172,11 +173,10 @@ every group, passing ones as `[  ok   ]  <id>`.
 - `paths` / `paths0`: every group's changed-source and unrecorded-dependent
   paths, sorted, deduped, newline- or NUL-delimited, for a diff or editor.
   Prefer `paths0 | xargs -0` so spaces survive. Empty when nothing drifted.
+  `check` still exits 1 on drift, so `check --format=paths0 | xargs -0 -r ...`
+  both prints paths and gates.
 - `quiet`: silent on a pass. A failing `check` prints its plain report to
   stderr, so a gate still names what failed; `status`, `init`, `update` don't.
-
-`check` keeps exit 1 on drift under any format, so
-`outdatty check --format=paths0 | xargs -0 -r ...` both prints paths and gates.
 
 ## Setting it up in a repo
 
@@ -186,6 +186,9 @@ every group, passing ones as `[  ok   ]  <id>`.
    and `outdatty.lock`.
 3. Gate CI with `outdatty check`, or add it to the repo's existing check
    target. The loop above replaces any per-project `outdatty-review` script.
+4. Let git merge the lockfile key by key: run `git config merge.outdatty.driver
+   'outdatty merge-lock %O %A %B'` per clone and commit `outdatty.lock
+   merge=outdatty` in `.gitattributes`. A hash both branches changed fails `check`.
 
 ## Gotchas
 

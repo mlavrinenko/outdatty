@@ -73,10 +73,9 @@ operational error, like an unknown group, a duplicate group name, an unparseable
 manifest or an incompatible lockfile. A missing lockfile isn't one, since
 `check` treats every group as new and exits `1`. Run `outdatty update` to make it.
 
-`--format=paths` (newline-delimited) and `--format=paths0` (NUL-delimited)
-print just the sorted, deduped changed-source and unrecorded-dependent paths,
-with no labels or summary. outdatty stores hashes, not diffs, so it hands you
-the paths and you pipe them into whatever diff or editor you like.
+`--format=paths` and `--format=paths0` (NUL-delimited) print just the sorted
+changed-source and unrecorded-dependent paths. outdatty stores hashes, not
+diffs, so pipe them into whatever diff or editor you like.
 
 ```bash
 outdatty status --format=paths0 | xargs -0 -r git diff --   # robust, handles spaces
@@ -174,17 +173,27 @@ stderr just as plain `check` would, so a red gate explains itself.
 - run: outdatty check --format quiet
 ```
 
-For a local guard, add a pre-commit hook.
+A local pre-commit hook runs the same line, `exec outdatty check --format quiet`
+in `.git/hooks/pre-commit`.
+
+## Merging the lockfile
+
+Two branches that record groups can touch neighbouring lines of `outdatty.lock`,
+which git's text merge calls a conflict. Register outdatty's merge driver once
+per clone and the lockfile merges key by key.
 
 ```bash
-# .git/hooks/pre-commit
-exec outdatty check --format quiet
+git config merge.outdatty.driver 'outdatty merge-lock %O %A %B'
+echo 'outdatty.lock merge=outdatty' >> .gitattributes   # commit this one
 ```
+
+Each hash takes the side that changed it, and a group one side dropped stays
+gone. A hash both sides changed gets one no file has, so `check` fails its
+group until you review it. The merge never stops on the lockfile.
 
 ## Contributing
 
-Development setup and coding conventions live in
-[CONTRIBUTING.md](CONTRIBUTING.md).
+Setup and conventions live in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

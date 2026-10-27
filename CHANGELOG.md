@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `outdatty merge-lock <base> <ours> <theirs>`, a git merge driver for the
+  lockfile. Register it with `git config merge.outdatty.driver 'outdatty
+  merge-lock %O %A %B'` and `outdatty.lock merge=outdatty` in `.gitattributes`.
+  It merges key by key, so two branches that record different groups no longer
+  conflict on neighbouring hash lines. A hash both sides changed gets one no
+  file has, so `check` fails its group until someone reviews it, and the merge
+  never stops on the lockfile. A group one side dropped stays dropped, so a
+  rename or split on one branch leaves no orphan from the other. A side that
+  isn't a lockfile exits 2, which git takes as a conflict.
+
 ## [0.9.0] - 2026-10-19
 
 ### Added

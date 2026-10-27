@@ -7,6 +7,7 @@ use clap::{Parser, Subcommand};
 
 use crate::commands::{self, Config};
 use crate::error::Result;
+use crate::merge;
 use crate::report::Format;
 use crate::style::ColorChoice;
 
@@ -68,6 +69,20 @@ enum Command {
     },
     /// Print the JSON schema for the manifest.
     Schema,
+    /// Merge two lockfiles key by key, as git's merge driver.
+    ///
+    /// Register it with `git config merge.outdatty.driver 'outdatty
+    /// merge-lock %O %A %B'` and the `.gitattributes` line `outdatty.lock
+    /// merge=outdatty`. Writes the merged lockfile over OURS. A hash both
+    /// sides changed gets one no file has, so `check` asks for its review.
+    MergeLock {
+        /// The common ancestor's lockfile (git's %O).
+        base: PathBuf,
+        /// This side's lockfile, overwritten with the result (git's %A).
+        ours: PathBuf,
+        /// The other side's lockfile (git's %B).
+        theirs: PathBuf,
+    },
 }
 
 /// Parses arguments and runs the requested command.
@@ -114,6 +129,10 @@ impl Cli {
             }
             Command::Status { groups } => {
                 print_output(&commands::status(&config, groups)?);
+                Ok(ExitCode::SUCCESS)
+            }
+            Command::MergeLock { base, ours, theirs } => {
+                eprint!("{}", merge::merge_files(base, ours, theirs)?);
                 Ok(ExitCode::SUCCESS)
             }
         }
